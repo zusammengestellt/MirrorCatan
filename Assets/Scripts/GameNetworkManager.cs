@@ -93,7 +93,7 @@ public class GameNetworkManager : NetworkManager
         
         // [Dev-only] Auto-start; currently using auto-spawn in NetworkManager instead
         #if UNITY_EDITOR
-        int autoStartTrigger = 2;
+        int autoStartTrigger = 3;
         if (waitingConnections.Count == autoStartTrigger)
         {
             Debug.Log($"There are {autoStartTrigger} players, auto-starting. The last player to ready up is assumed to be the match creator and the one who pressed start.");
@@ -156,14 +156,18 @@ public class GameNetworkManager : NetworkManager
         #endif
     }
 
-    // Coroutine to wait a frame for player objects to spawn in properly.
     [Server]
     IEnumerator GameStart()
-    {      
+    {
+        foreach (NetworkConnection conn in waitingConnections)
+        {
+            GameObject player = Instantiate(NetworkManager.singleton.playerPrefab);
+            NetworkServer.AddPlayerForConnection(conn, player);
+        }
+
         yield return null;
 
         int i = 1;
-
         foreach (int key in NetworkServer.connections.Keys)
         {
             playerIds[i] = NetworkServer.connections[key].identity;
