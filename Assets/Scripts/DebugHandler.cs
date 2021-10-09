@@ -5,6 +5,8 @@ using Mirror;
 
 public class DebugHandler : MonoBehaviour
 {
+    /*
+
     private Dictionary<int,int> connectionKeys;
 
     // NetworkServer.connections is a Dictionary with <Int, NetworkConnectionToClient>
@@ -24,7 +26,7 @@ public class DebugHandler : MonoBehaviour
     
     void Update()
     {
-        CheckDebugByNumber();
+        //CheckDebugByNumber();
     }
 
     // Check if should debug by number. The actual test is in DebugByNumber()
@@ -57,5 +59,7 @@ public class DebugHandler : MonoBehaviour
         NetworkServer.connections[connectionKeys[number]].identity.gameObject.GetComponent<PlayerController>().numCards++;        
         
     }
+
+    */
     
 }

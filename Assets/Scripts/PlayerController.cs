@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,14 +6,27 @@ using UnityEngine.UI;
 using Mirror;
 
 public class PlayerController : NetworkBehaviour
-{    
-    [SyncVar(hook = nameof(SetPlayerIndex))]
-    public int playerIndex;
+{
+    [SyncVar] public int playerIndex;
+    [SyncVar] public int playerCount;
 
-    [SyncVar(hook = nameof(UpdateCards))]
-    public int numCards;
+    void Start()
+    {
+        if (!isLocalPlayer)
+            this.gameObject.SetActive(false);
+
+        if (isLocalPlayer)
+        {
+            PlayerGUI gui = GameObject.FindGameObjectWithTag("PlayerGUI").GetComponent<PlayerGUI>();
+            gui.playerIndex = playerIndex;
+            gui.playerCount = playerCount;
+        }
+        
+    }
 
 
+    /*
+    
     public GameObject cardPrefab;
     public GameObject cardSmallPrefab;
 
@@ -22,8 +36,7 @@ public class PlayerController : NetworkBehaviour
     public GameObject handZone;
     public GameObject enemyZoneGrid;
     public GameObject enemyZonePrefab;
-    private Dictionary<int, GameObject> enemyZones;
-    
+    public Dictionary<int, GameObject> enemyZones;
 
     void Start()
     {
@@ -32,16 +45,17 @@ public class PlayerController : NetworkBehaviour
 
         // Enemy zones
         enemyZones = new Dictionary<int, GameObject>();
+        
+        
+        //int numPlayers = GameObject.FindGameObjectsWithTag("Player").Length;
 
-        int numPlayers = GameObject.FindGameObjectsWithTag("Player").Length;
+        //for (int i = 1; i <= numPlayers; i++)
+        //{
+          //  if (i == playerIndex) return;
 
-        for (int i = 1; i <= numPlayers; i++)
-        {
-            if (i == playerIndex) return;
-
-            GameObject enemyZone = Instantiate(enemyZonePrefab, Vector3.zero, Quaternion.identity, enemyZoneGrid.transform);
-            enemyZones[i] = enemyZone;
-        }
+           // GameObject enemyZone = Instantiate(enemyZonePrefab, Vector3.zero, Quaternion.identity, enemyZoneGrid.transform);
+            //enemyZones[i] = enemyZone;
+        //}
 
     }
 
@@ -51,12 +65,6 @@ public class PlayerController : NetworkBehaviour
         indexLabel.GetComponent<Text>().text = $"Player {playerIndex}";
     }
 
-
-
-    // This SyncVarHook will update on each client, but on the objects for the same player.
-    // e.g. for Player B: Client A's playerObject B, Client B's playerObject B, and Client C's playerObject B.
-    // This is why if you try to do "A card was/was not dealt to me, I now have {numCards} cards",
-    // you will get the same {numCards} on each Client -- all dealt to the various Player B's.
     [Client]
     void UpdateCards(int oldVar, int newVar)
     {
@@ -74,7 +82,51 @@ public class PlayerController : NetworkBehaviour
             // So we update my hand as one of that remote client's enemy hands
             Debug.Log($"Player {playerIndex}: A card was dealt to one of my clones on this remote client. I now have {numCards} cards.");
 
-            Instantiate(cardSmallPrefab, Vector3.zero, Quaternion.identity, enemyZones[playerIndex].transform.GetChild(0).transform);
+            CmdUpdateHands();
+            //Instantiate(cardSmallPrefab, Vector3.zero, Quaternion.identity, enemyZones[playerIndex].transform.GetChild(0).transform);
         }
     }
+    
+
+    void UpdateCards(int oldVar, int newVar)
+    {
+        if (isLocalPlayer)
+        {
+            // This was dealt to me, the LocalPlayer.
+            // So we update my own hand
+            Debug.Log($"Player {playerIndex}: A card was dealt to me, the LocalPlayer. I now have {numCards} cards.");
+
+            Instantiate(cardPrefab, Vector3.zero, Quaternion.identity, handZone.transform);
+        }   
+        else
+        {
+            // This was dealt to one of my clones on a remote client.
+            // So we update my hand as one of that remote client's enemy hands
+            Debug.Log($"Player {playerIndex}: A card was dealt to one of my clones on this remote client. I now have {numCards} cards.");
+
+            CmdUpdateHands();
+            //Instantiate(cardSmallPrefab, Vector3.zero, Quaternion.identity, enemyZones[playerIndex].transform.GetChild(0).transform);
+        }
+    }
+
+    
+
+    void CmdUpdateHands()
+    {
+        public GameController gc = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameController>();
+
+        for (int i = 1; i < gc.playerConns.Count; i++)
+        {
+            if (i != playerIndex)
+            {
+                Debug.Log($"change hand for player {i}");
+            }
+        }
+
+        //GameObject zone = gc.playerConns[];
+
+        //Instantiate(cardSmallPrefab, Vector3.zero, Quaternion.identity, enemyZones[playerIndex].transform.GetChild(0).transform);
+    }
+
+    */
 }

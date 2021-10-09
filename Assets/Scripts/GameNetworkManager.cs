@@ -22,10 +22,16 @@ using ParrelSync;
 
 public class GameNetworkManager : NetworkManager
 {
-    // Holds connections before players are assigned, game starts, etc.
+    // Holds connections before/after players are assigned, game starts, etc.
     internal static readonly List<NetworkConnection> waitingConnections = new List<NetworkConnection>();
+    internal static readonly List<NetworkConnection> playingConnections = new List<NetworkConnection>();
 
-    public readonly Dictionary<int, NetworkIdentity> playerIds = new Dictionary<int, NetworkIdentity>();
+    // Player-indexed reference to connections
+    internal static readonly Dictionary<int, NetworkConnection> playerConns = new Dictionary<int, NetworkConnection>();
+    internal static readonly Dictionary<int, NetworkIdentity> playerIds = new Dictionary<int, NetworkIdentity>();
+
+    public GameObject gameControllerPrefab;
+
 
     // Runs on both Server and Client (Networking is NOT initialized when this fires)
     public override void Awake()
@@ -159,20 +165,54 @@ public class GameNetworkManager : NetworkManager
     [Server]
     IEnumerator GameStart()
     {
+        // waitingConnections are converted into playingConnections.
+        // Any later lobby work would only allow confirmed waiting connections to start.
         foreach (NetworkConnection conn in waitingConnections)
         {
-            GameObject player = Instantiate(NetworkManager.singleton.playerPrefab);
-            NetworkServer.AddPlayerForConnection(conn, player);
+            playingConnections.Add(conn);
+        }
+        waitingConnections.Clear();
+
+        // Assign each player connection a number (1-based, will be the playerIndex).
+        int i = 1;
+        foreach (NetworkConnection conn in playingConnections)
+        {
+            playerConns[i] = conn;
+            i++;
         }
 
+        // Spawn the gameController object.
+        GameObject gameController = Instantiate(gameControllerPrefab);
+        NetworkServer.Spawn(gameController);
+
+        // Set player count.
+        gameController.GetComponent<GameController>().playerCount = playerConns.Count;
+
+        // Wait a frame for gameController's Start to finish.
         yield return null;
 
-        int i = 1;
-        foreach (int key in NetworkServer.connections.Keys)
+
+        // Spawn the player objects, set their playerIndexes, and get their playerIds.
+        foreach (KeyValuePair<int, NetworkConnection> entry in playerConns)
         {
-            playerIds[i] = NetworkServer.connections[key].identity;
-            playerIds[i].gameObject.GetComponent<PlayerController>().playerIndex = i;
-            i++;
+            int index = entry.Key;
+            NetworkConnection conn = entry.Value;
+
+            GameObject player = Instantiate(NetworkManager.singleton.playerPrefab);
+            player.GetComponent<PlayerController>().playerIndex = index;
+            player.GetComponent<PlayerController>().playerCount = playerConns.Count;
+            NetworkServer.AddPlayerForConnection(conn, player);
+
+            playerIds[index] = conn.identity;
+        }
+
+        
+        // Can't have a SyncDictionary in the Network Manager, so here we map
+        // the normal Dictionary to GameController's SyncDictionary
+        // (which then syncs itself with the clients).
+        foreach (KeyValuePair<int, NetworkIdentity> entry in playerIds)
+        {
+            gameController.GetComponent<GameController>().playerIds[entry.Key] = entry.Value;
         }
     }
 }
