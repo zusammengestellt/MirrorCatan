@@ -7,23 +7,38 @@ using Mirror;
 
 public class PlayerController : NetworkBehaviour
 {
-    [SyncVar] public int playerIndex;
-    [SyncVar] public int playerCount;
+    public GameManager gm;
+    
+    [SyncVar] public int syncPlayerIndex;
+    public static int playerIndex;
 
     void Start()
     {
         if (!isLocalPlayer)
+        {
             this.gameObject.SetActive(false);
+        }
 
         if (isLocalPlayer)
         {
-            PlayerGUI gui = GameObject.FindGameObjectWithTag("PlayerGUI").GetComponent<PlayerGUI>();
-            gui.playerIndex = playerIndex;
-            gui.playerCount = playerCount;
+            playerIndex = syncPlayerIndex;
         }
         
     }
 
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            CmdRequestNextTurn();
+        }
+    }
+
+    [Command]
+    private void CmdRequestNextTurn()
+    {
+        gm.RequestNextTurn(playerIndex);
+    }
 
     /*
     
@@ -113,7 +128,7 @@ public class PlayerController : NetworkBehaviour
 
     void CmdUpdateHands()
     {
-        public GameController gc = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameController>();
+        public GameManager gc = GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>();
 
         for (int i = 1; i < gc.playerConns.Count; i++)
         {

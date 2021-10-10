@@ -8,19 +8,7 @@ using Mirror;
 using ParrelSync;
 #endif
 
-
-/* SUMMARY
-    GameNetworkManager handles initial set up and connections.
-    Both server and client then make their own calls to the
-    canvasController component on each instance's Canvas.
-
-    Interestingly, the NetworkManager GameObject also references
-    Canvas's canvasController component -- so there is no need
-    to do canvas.GetComponent<canvasController>(). This way ensures
-    that the GameObject gets the instance's own canvasController.
-*/
-
-public class GameNetworkManager : NetworkManager
+public class MyNetworkManager : NetworkManager
 {
     // Holds connections before/after players are assigned, game starts, etc.
     internal static readonly List<NetworkConnection> waitingConnections = new List<NetworkConnection>();
@@ -30,7 +18,7 @@ public class GameNetworkManager : NetworkManager
     internal static readonly Dictionary<int, NetworkConnection> playerConns = new Dictionary<int, NetworkConnection>();
     internal static readonly Dictionary<int, NetworkIdentity> playerIds = new Dictionary<int, NetworkIdentity>();
 
-    public GameObject gameControllerPrefab;
+    public GameObject gameManagerPrefab;
 
 
     // Runs on both Server and Client (Networking is NOT initialized when this fires)
@@ -43,12 +31,12 @@ public class GameNetworkManager : NetworkManager
         if (!ClonesManager.IsClone())
         {
             Debug.Log("Not a ParrelSync clone, auto-starting server.");
-            GameObject.Find("NetworkManager").GetComponent<GameNetworkManager>().StartServer();
+            GameObject.Find("NetworkManager").GetComponent<MyNetworkManager>().StartServer();
         }
         else
         {
             Debug.Log("Is a ParrelSync clone, auto-starting client.");
-            GameObject.Find("NetworkManager").GetComponent<GameNetworkManager>().StartClient();
+            GameObject.Find("NetworkManager").GetComponent<MyNetworkManager>().StartClient();
         }
         #endif
 
@@ -181,14 +169,12 @@ public class GameNetworkManager : NetworkManager
             i++;
         }
 
-        // Spawn the gameController object.
-        GameObject gameController = Instantiate(gameControllerPrefab);
-        NetworkServer.Spawn(gameController);
+        // Spawn the gameManager object.
+        GameObject gameManager = Instantiate(gameManagerPrefab);
+        gameManager.GetComponent<GameManager>().syncPlayerCount = playerConns.Count;
+        NetworkServer.Spawn(gameManager);        
 
-        // Set player count.
-        gameController.GetComponent<GameController>().playerCount = playerConns.Count;
-
-        // Wait a frame for gameController's Start to finish.
+        // Wait a frame for gameManager's Start to finish.
         yield return null;
 
 
@@ -199,8 +185,7 @@ public class GameNetworkManager : NetworkManager
             NetworkConnection conn = entry.Value;
 
             GameObject player = Instantiate(NetworkManager.singleton.playerPrefab);
-            player.GetComponent<PlayerController>().playerIndex = index;
-            player.GetComponent<PlayerController>().playerCount = playerConns.Count;
+            player.GetComponent<PlayerController>().syncPlayerIndex = index;
             NetworkServer.AddPlayerForConnection(conn, player);
 
             playerIds[index] = conn.identity;
@@ -208,11 +193,11 @@ public class GameNetworkManager : NetworkManager
 
         
         // Can't have a SyncDictionary in the Network Manager, so here we map
-        // the normal Dictionary to GameController's SyncDictionary
+        // the normal Dictionary to gameManager's SyncDictionary
         // (which then syncs itself with the clients).
         foreach (KeyValuePair<int, NetworkIdentity> entry in playerIds)
         {
-            gameController.GetComponent<GameController>().playerIds[entry.Key] = entry.Value;
+            gameManager.GetComponent<GameManager>().playerIds[entry.Key] = entry.Value;
         }
     }
 }

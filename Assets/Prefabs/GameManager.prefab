@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 8014343728554814225}
   - component: {fileID: -8411214005083320870}
-  - component: {fileID: 738732547410729754}
+  - component: {fileID: -1710338506738061404}
   m_Layer: 0
-  m_Name: GameController
+  m_Name: GameManager
   m_TagString: GameController
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -49,7 +49,7 @@ MonoBehaviour:
   visible: 0
   m_AssetId: 485991fda49c88005b18d16473ff906a
   hasSpawned: 0
---- !u!114 &738732547410729754
+--- !u!114 &-1710338506738061404
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -63,3 +63,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
+  playerCount: 0
