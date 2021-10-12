@@ -11,24 +11,21 @@ using Mirror;
 // Holds the game state variables. Clients access it by calling a command that
 // executes GameObject.FindGameObjectWithTag("GameManager").
 
-public enum Resource { CardBack, Brick, Grain, Ore, Wood, Wool }
+public enum Resource { None, Brick, Grain, Ore, Wood, Wool }
 
 public class GameManager : NetworkBehaviour
 {
-    // Player count
     [SyncVar] public int syncPlayerCount;
     public static int playerCount;
-    
-    // playerIds: holds playerIndexed references to identities
+
+    [SyncVar] public int currentTurn = 0;
+
     public SyncDictionary<int, NetworkIdentity> playerIds = new SyncDictionary<int, NetworkIdentity>();
-
-    // playerNames: holds playerIndexed references to nicknames
     public SyncDictionary<int, string> playerNames = new SyncDictionary<int, string>();
-
-    // playerResources: holds playerIndexed references to a List<Resource>
     public readonly SyncDictionary<int, List<Resource>> playerResources = new SyncDictionary<int, List<Resource>>();
 
-    
+    public GameObject gameBoardPrefab;
+
 
     public static Resource[] resourceSortOrder = { Resource.Wood, Resource.Brick, Resource.Wool, Resource.Grain, Resource.Ore };
 
@@ -63,10 +60,16 @@ public class GameManager : NetworkBehaviour
         {
             playerResources[index] = new List<Resource>();
         }
+
+        // Spawn the game board (good luck)
+        GameObject gameBoard = Instantiate(gameBoardPrefab, Vector3.zero, Quaternion.identity);
+        NetworkServer.Spawn(gameBoard);
+
     }
 
-////////
 
+    ////
+    //TEST ADD RESOURCES
     void Update()
     {
         if (!isServer) { return; }
@@ -84,25 +87,7 @@ public class GameManager : NetworkBehaviour
                     Debug.Log($"Player {number} now has {playerResources[number].Count} cards");
                 }
             }
-
         }
-        
-    }
-
-    // Game flow events
-    public static event Action<int> onNextTurn;
-
-    [Server]
-    public void RequestNextTurn(int playerIndex)
-    {
-        // check logic
-        RpcAdvanceNextTurn(playerIndex);
-    }
-
-    [ClientRpc]
-    private void RpcAdvanceNextTurn(int playerIndex)
-    {
-        onNextTurn?.Invoke(playerIndex);
     }
 
 
@@ -140,6 +125,78 @@ public class GameManager : NetworkBehaviour
 
         RpcChangeResource(playerIndex, newResources);
     }
+
+
+    public void OnEnable()
+    {
+
+    }
+
+    // Message board system
+    public static event Action<string> postMessage;
+
+    // Game state events
+    public static event Action<int> onNextTurn;
+    public static event Action<int, int> onRollDie;
+    
+
+    [Server]
+    public void RequestNextTurn(int requestor)
+    {
+        // check logic
+
+        // if good, then:
+        int nextTurn = requestor + 1;
+        if (nextTurn > playerCount)
+            nextTurn = 1;
+        currentTurn = nextTurn;
+
+        RpcAdvanceNextTurn(currentTurn);
+        RollDie();
+    }
+
+    [ClientRpc]
+    private void RpcAdvanceNextTurn(int currentTurn)
+    {
+        onNextTurn?.Invoke(currentTurn);
+        postMessage?.Invoke($"It is now Player {currentTurn}'s turn.");
+    }
+    
+    // Trigger die roll animation on clients.
+    [Server]
+    private void RollDie() => RpcRollDie(UnityEngine.Random.Range(1,7), UnityEngine.Random.Range(1,7));
+
+    [ClientRpc]
+    private void RpcRollDie(int roll1, int roll2)
+    {
+        onRollDie?.Invoke(roll1, roll2);
+        postMessage?.Invoke($"Rolling die...");
+    }
+
+    [Server]
+    public void RequestFinishRoll(int result)
+    {
+        if (result != 7)
+            ProcessResources(result);
+        else
+        {
+            // robber logic
+        }
+    }
+    
+    [Server]
+    private void ProcessResources(int result)
+    {
+        for (int i = 0; i < GameBoard.numHexes; i++)
+        {
+            if (GameBoard.rolls[i] == result)
+            {
+                // NOT ACTUALLY TO PLAYER 1 ONLY
+                AddResource(1, GameBoard.resources[i]);
+            }
+        }
+    }
+
 
 
 }

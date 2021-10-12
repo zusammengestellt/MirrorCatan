@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,8 +20,7 @@ public class MyNetworkManager : NetworkManager
     internal static readonly Dictionary<int, NetworkIdentity> playerIds = new Dictionary<int, NetworkIdentity>();
 
     public GameObject gameManagerPrefab;
-
-
+    
     // Runs on both Server and Client (Networking is NOT initialized when this fires)
     public override void Awake()
     {
@@ -190,7 +190,6 @@ public class MyNetworkManager : NetworkManager
 
             playerIds[index] = conn.identity;
         }
-
         
         // Can't have a SyncDictionary in the Network Manager, so here we map
         // the normal Dictionary to gameManager's SyncDictionary
@@ -199,5 +198,7 @@ public class MyNetworkManager : NetworkManager
         {
             gameManager.GetComponent<GameManager>().playerIds[entry.Key] = entry.Value;
         }
+
+
     }
 }

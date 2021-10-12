@@ -63,4 +63,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
-  playerCount: 0
+  syncPlayerCount: 0
+  currentTurn: 0
+  gameBoardPrefab: {fileID: 793211645052042603, guid: 16183d435d9d4fc029edfa95c81f2f0c, type: 3}
