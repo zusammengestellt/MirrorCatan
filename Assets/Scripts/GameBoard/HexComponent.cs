@@ -5,6 +5,8 @@ using Mirror;
 
 public class HexComponent : NetworkBehaviour
 {
+    public Hex hex;
+    
     public int id;
     public int roll;
     

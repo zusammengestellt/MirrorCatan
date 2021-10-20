@@ -5,6 +5,10 @@ using UnityEngine.UI;
 
 public class DieRollZone : MonoBehaviour
 {
+    public float rollBaseDuration;
+    public float rollDropoff;
+    
+    private GameManager gm;
     private PlayerController pc;
 
     public GameObject die1;
@@ -38,6 +42,7 @@ public class DieRollZone : MonoBehaviour
 
     private void Start()
     {
+        gm = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
         pc = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
     }
 
@@ -66,7 +71,12 @@ public class DieRollZone : MonoBehaviour
         {
             die1.GetComponent<RawImage>().texture = dieFaces[System.Math.Abs((rollStart1 + i) % 6)];
             die2.GetComponent<RawImage>().texture = dieFaces[System.Math.Abs((rollStart2 + i) % 6)];
-            yield return new WaitForSeconds(0.05f + (i * 0.03f));
+            
+            if (!gm.fastRoll)
+                yield return new WaitForSeconds(rollBaseDuration + (i * rollDropoff));
+            else
+                yield return new WaitForSeconds(0.001f);
+            yield return null;
         }
 
         // Selection animation.
@@ -80,7 +90,9 @@ public class DieRollZone : MonoBehaviour
         }
 
 
-        pc.CmdFinishRoll(result);
+        // Three calls to roll die. Only active player should
+        // call back, otherwise resources generate X times.
+        pc.CmdFinishRoll(PlayerController.playerIndex, result);
         yield return null;
     }
 

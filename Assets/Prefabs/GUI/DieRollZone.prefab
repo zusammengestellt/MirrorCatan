@@ -109,7 +109,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 200, y: 0}
+  m_AnchoredPosition: {x: 200, y: 200}
   m_SizeDelta: {x: 300, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8301105648991401428
@@ -162,6 +162,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4048c7081346df289d5983fcf51862a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  rollBaseDuration: 0.03
+  rollDropoff: 0.01
   die1: {fileID: 998377676722580129}
   die2: {fileID: 9114387790120138505}
   dieFace1: {fileID: 2800000, guid: cd1a11d63401341dfb03156f151e4532, type: 3}

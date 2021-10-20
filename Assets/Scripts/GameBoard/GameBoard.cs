@@ -10,6 +10,7 @@ public class GameBoard : NetworkBehaviour
     public GameObject CornerPrefab;
     public GameObject PathPrefab;
     public GameObject NumberTokenPrefab;
+    public GameObject RobberPrefab;
 
     public Material DesertMat;
     public Material ForestMat;
@@ -50,7 +51,7 @@ public class GameBoard : NetworkBehaviour
         else { GenerateBoard(); }
 
         // When the clients are all ready, they inform the server and the server runs an Rpc call
-        // to apply the randomize settings to each client board.
+        // to apply the randomized settings to each client board.
     }
 
     public void CalculateBoard()
@@ -81,6 +82,7 @@ public class GameBoard : NetworkBehaviour
                 if (r + q >= boardSize && r + q <= boardSize * 3)
                 {
                     hexes[i] = new Hex(q, r);
+                    hexes[i].id = i;
                     i++;
                 }
             }
@@ -296,6 +298,7 @@ public class GameBoard : NetworkBehaviour
         for (int i = 0; i < numHexes; i++)
         {
             hexObjects[i] = Instantiate(HexPrefab, hexes[i].position, Quaternion.identity);
+            hexObjects[i].GetComponent<HexComponent>().hex = hexes[i];
             hexObjects[i].GetComponent<HexComponent>().id = i;
             hexObjects[i].transform.name = $"Hex{i}";
             hexes[i].instance = hexObjects[i];
@@ -421,6 +424,7 @@ public class GameBoard : NetworkBehaviour
         // when ready
         resources = resDistribution;
         rolls = rollDistribution;
+
         RpcUpdateBoard(resDistribution, rollDistribution);
     }
 
@@ -428,21 +432,31 @@ public class GameBoard : NetworkBehaviour
     [ClientRpc]
     public void RpcUpdateBoard(Resource[] newResDistribution, int[] newRollDistribution)
     {
+                
         // Resources.
-        for (int i = 0; i < numHexes; i++)
-            hexObjects[i].GetComponent<HexComponent>().ChangeResource(newResDistribution[i]);
-    
+        resources = newResDistribution;
 
+        for (int i = 0; i < numHexes; i++)
+        {
+            hexObjects[i].GetComponent<HexComponent>().ChangeResource(newResDistribution[i]);
+            hexes[i].resource = newResDistribution[i];
+        }
 
         // Hex rolls.
+        rolls = newRollDistribution;
+
         for (int rollIt = 0, i = 0; i < hexes.Length; i++)
         {
             // Desert is fixed at 7
             if (hexObjects[i].GetComponent<HexComponent>().resource == Resource.None)
+            {
                 hexObjects[i].GetComponent<HexComponent>().roll = 7;
+                hexes[i].roll = 7;
+            }
             else
             {
                 hexObjects[i].GetComponent<HexComponent>().roll = newRollDistribution[rollIt];
+                hexes[i].roll = newRollDistribution[rollIt];
                 rollIt++;
             }
         }
@@ -458,7 +472,72 @@ public class GameBoard : NetworkBehaviour
             if (tokenObjects[i] != null)
                 tokenObjects[i].GetComponent<NumberTokenComponent>().SetLabel(hexRoll);
         }
+
+        Resource[] hexResources = new Resource[numHexes];
+        int[] hexRolls = new int[numHexes];
+
+        for (int i = 0; i < numHexes; i++)
+        {
+            hexResources[i] = hexObjects[i].GetComponent<HexComponent>().resource;
+            hexRolls[i] = hexObjects[i].GetComponent<HexComponent>().roll;
+        }
+
+        CmdUpdateServer(hexResources, hexRolls);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdUpdateServer(Resource[] hexResources, int[] hexRolls)
+    {
+        for (int i = 0; i < numHexes; i++)
+        {
+            hexes[i].resource = hexResources[i];
+            hexes[i].roll = hexRolls[i];
+        }
+
+        // Spawn robber. Honestly all hexes should have been spawned
+        // and this definitely would be earlier but here we are
+        // with our decisions in October 2021
         
+        for (int i = 0; i < numHexes; i++)
+        {
+            if (hexes[i].roll == 7)
+            {
+                GameObject robberObject = Instantiate(RobberPrefab, hexes[i].position, Quaternion.identity);
+                NetworkServer.Spawn(robberObject);
+            }
+        }
+
+    }
+
+    [Client]
+    public static bool IsStealTarget(int targetPlayer)
+    {
+        Hex robberLocation = null;
+
+        for (int i = 0; i < hexes.Length; i++)
+        {
+            if (hexes[i].robbed)
+            {
+                robberLocation = hexes[i];
+            }
+        }
+
+        if (robberLocation == null)
+        {
+            Debug.Log("robberLocation is null!");
+        }
+
+        foreach (Corner c in robberLocation.corners)
+        {
+            if (c.playerOwner != GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>().currentTurn && c.playerOwner == targetPlayer)
+            {
+                Debug.Log($"Player {targetPlayer} is a steal target");
+                return true;
+            }
+        }
+
+        Debug.Log($"Player {targetPlayer} is not a steal target");
+        return false;
     }
 
 
@@ -477,7 +556,7 @@ public class GameBoard : NetworkBehaviour
     }
 
     [Client]
-    public Vector3 HexFreePositionUnderMouse()
+    public static Vector3 HexFreePositionUnderMouse()
     {
         Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hitInfo;
@@ -491,7 +570,7 @@ public class GameBoard : NetworkBehaviour
     }
 
     [Client]
-    public GameObject CornerUnderMouse()
+    public static GameObject CornerUnderMouse()
     {
         Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hitInfo;
@@ -502,7 +581,7 @@ public class GameBoard : NetworkBehaviour
     }
 
     [Client]
-    public Path PathUnderMouse()
+    public static Path PathUnderMouse()
     {
         Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hitInfo;
@@ -551,145 +630,31 @@ public class GameBoard : NetworkBehaviour
         else
             return null;
     }
-}
 
-
-public class Hex
-{
-    public Hex(int q, int r) {
-        this.Q = q;
-        this.R = r;
-
-        this.neighbors = new Hex[6];
-
-        //int boardSize = GameObject.Find("HexMap").GetComponent<HexMap>().boardSize;
-        int boardSize = 2;
-
-        // Calculate and store position of center points
-        this.position = new Vector3(
-            hexHorizontalSpacing * Q + (R * hexHorizontalSpacing / 2),
-            hexGroundLevel,
-            hexVerticalSpacing * R
-        );
-
-        // Center grid around 0,0 by subtracting the position
-        // of (boardSize,boardSize) from all points
-        this.position.x -= (hexHorizontalSpacing * boardSize) + (boardSize * hexHorizontalSpacing / 2);
-        this.position.z -= hexVerticalSpacing * boardSize;
-
-        // Calculate and store raw vertices
-        vertices[0] = new Vector3(
-            position.x,
-            position.y,
-            position.z + hexHeight / 2
-        );
-        vertices[1] = new Vector3(
-            position.x + hexWidth / 2,
-            position.y,
-            position.z + hexHeight / 4
-        );
-        vertices[2] = new Vector3(
-            position.x + hexWidth / 2,
-            position.y,
-            position.z - hexHeight / 4
-        );
-        vertices[3] = new Vector3(
-            position.x,
-            position.y,
-            position.z - hexHeight / 2
-        );
-        vertices[4] = new Vector3(
-            position.x - hexWidth / 2,
-            position.y,
-            position.z - hexHeight / 4
-        );
-        vertices[5] = new Vector3(
-            position.x - hexWidth / 2,
-            position.y,
-            position.z + hexHeight / 4
-        );
-
-        // Set corners to null
+    public static int GetNumVillages()
+    {
+        int villageCount = 0;
         for (int i = 0; i < corners.Length; i++)
-            corners[i] = null;
+        {
+            if (corners[i].owned)
+                villageCount++;
+        }
+        return villageCount;
     }
 
-    public GameObject instance;
-
-    public const float unitScale = 10f;
-    public const float hexGroundLevel = 0f;
-
-    public const float hexWidth = unitScale * 1.7320508f; // Sqrt(3)
-    public const float hexHeight = unitScale * 2;
-
-    public const float hexHorizontalSpacing = hexWidth;
-    public const float hexVerticalSpacing = hexHeight * 3 / 4;
-
-    public int Q;
-    public int R;
-
-    public Vector3 position;
-
-    public Hex[] neighbors;
-    public Vector3[] vertices = new Vector3[6];
-    public Corner[] corners = new Corner[6];
-    public Path[] paths = new Path[12];
-}
-
-
-public class Corner
-{
-    public Corner(Vector3 pos, int id)
+    public static int GetNumRoads()
     {
-        this.position = pos;
-        this.idNum = id;
-
-        neighborHexes = new List<Hex>();
-        neighborCorners = new List<Corner>();
-        neighborPaths = new Dictionary<Corner,Path>();
+        int roadCount = 0;
+        for (int i = 0; i < paths.Length; i++)
+        {
+            if (paths[i].owned)
+                roadCount++;
+        }
+        return roadCount;
     }
-
-    [System.NonSerialized] public GameObject instance;
-    
-
-    public Vector3 position;
-    public List<Hex> neighborHexes;
-    public List<Corner> neighborCorners;
-    public Dictionary<Corner,Path> neighborPaths;
-
-    public int idNum;
-    
-    /*
-    [System.NonSerialized] public bool owned;
-    [System.NonSerialized] public int playerOwner = -1;
-    [System.NonSerialized] public int devLevel = 0;
-    */
 }
 
 
-public class Path
-{
-    public Path(int id, Vector3 pos, Quaternion rot)
-    {
-        this.idNum = id;
-        this.position = pos;
-        this.rotation = rot;
 
-        connectedPaths = new List<Path>();
-    }
 
-    [System.NonSerialized] public GameObject instance;
 
-    public int idNum;
-    public Vector3 position;
-    public Quaternion rotation;
-
-    /*
-    [System.NonSerialized] public bool owned;
-    [System.NonSerialized] public int playerOwner = -1;
-    */
-
-    public List<Path> connectedPaths;
-    public Corner myCorner;
-    
-}

@@ -1,5 +1,132 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4470187888486700668
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3810115030267011324}
+  - component: {fileID: 1219772452642260930}
+  m_Layer: 0
+  m_Name: Audio Source
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3810115030267011324
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4470187888486700668}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 8014343728554814225}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!82 &1219772452642260930
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4470187888486700668}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 8300000, guid: 4592458285585544685c59e85cd14ba4, type: 3}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &8014343728554814224
 GameObject:
   m_ObjectHideFlags: 0
@@ -28,7 +155,8 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
+  m_Children:
+  - {fileID: 3810115030267011324}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -63,6 +191,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
+  skipSetupPhase: 0
+  fastRoll: 0
+  startingWood: 0
+  startingWool: 0
+  startingBrick: 0
+  startingGrain: 0
+  startingOre: 0
+  sfxDieRoll: {fileID: 1219772452642260930}
   syncPlayerCount: 0
   currentTurn: 0
+  GameState: 4
   gameBoardPrefab: {fileID: 793211645052042603, guid: 16183d435d9d4fc029edfa95c81f2f0c, type: 3}
+  roadBlueprint: {fileID: 7811781260273031914, guid: ffc9ca247d7b8548d93fe26898b17897, type: 3}
+  villageBlueprint: {fileID: 2757051072579982292, guid: 406a2b12fc3781a3eb4a954295bb27d6, type: 3}
+  cityBlueprint: {fileID: 1996329257321247558, guid: ebee02852c823b1148a30a043297d13b, type: 3}
+  roadPrefab: {fileID: 1955742914849834568, guid: 77c8574e99a4915a09e949f1f271db31, type: 3}
+  villagePrefab: {fileID: 2002379560364057952, guid: f46196e5dc5b8ec2499f18a8e09bdfc4, type: 3}
+  cityPrefab: {fileID: 7034511087653067505, guid: 5fb489148b462846a8dd0516479d2acb, type: 3}
+  matBlue: {fileID: 2100000, guid: 3a100fadb3d745117b929161b65fbc62, type: 2}
+  matRed: {fileID: 2100000, guid: 9d88870735dd1a8bd83a9bb1ea0ca1e4, type: 2}
+  matGreen: {fileID: 2100000, guid: f696411841f7cbbc3a4e6699e7ef8bdb, type: 2}
+  matYellow: {fileID: 2100000, guid: 98a1c725a4d909fab86e080542b9b940, type: 2}
+  matTransparentBlue: {fileID: 2100000, guid: 561f84c5b323d9f669f05370bc5849f9, type: 2}
+  matTransparentRed: {fileID: 2100000, guid: e971d1eec44e079b4af5ed9d7f833909, type: 2}
+  matTransparentGreen: {fileID: 2100000, guid: 5de16c2512bba631c82aed8b9319eb3c, type: 2}
+  matTransparentYellow: {fileID: 2100000, guid: d9a6eded70ca29e1588466e20ac33193, type: 2}

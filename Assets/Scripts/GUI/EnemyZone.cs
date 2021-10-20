@@ -42,7 +42,8 @@ public class EnemyZone : MonoBehaviour
         // Instantiate the current number of smallCards (w/ hidden card backs).
         for (int i = 0; i < resources.Count; i++)
         {
-            Instantiate(cardSmallPrefab, Vector3.zero, Quaternion.identity, enemyHandZone.transform);
+            GameObject card = Instantiate(cardSmallPrefab, Vector3.zero, Quaternion.identity, enemyHandZone.transform);
+            card.GetComponent<CardSmall>().cardOwner = targetPlayerIndex;
         }
 
         // Dynamically adjust spacing between cards

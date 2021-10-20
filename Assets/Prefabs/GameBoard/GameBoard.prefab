@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 793211645052042602}
   m_Layer: 0
   m_Name: GameBoard
-  m_TagString: Untagged
+  m_TagString: GameBoard
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -47,7 +47,7 @@ MonoBehaviour:
   sceneId: 0
   serverOnly: 0
   visible: 0
-  m_AssetId: 
+  m_AssetId: 16183d435d9d4fc029edfa95c81f2f0c
   hasSpawned: 0
 --- !u!114 &793211645052042602
 MonoBehaviour:
@@ -67,6 +67,7 @@ MonoBehaviour:
   CornerPrefab: {fileID: 1840192524019036621, guid: fc535b115f4cd88b59adfc1f55138b04, type: 3}
   PathPrefab: {fileID: 5933004870310811684, guid: b8a586bd7f38b7f13aa5d5ab372361c2, type: 3}
   NumberTokenPrefab: {fileID: 2048947176852965137, guid: ebbf5336cbe7370c1b5c7a801e1bde3f, type: 3}
+  RobberPrefab: {fileID: 1907784421191662524, guid: 9b8d4569933c45c2982148c0060a1913, type: 3}
   DesertMat: {fileID: 2100000, guid: ee40200fe137741ec971697df5777523, type: 2}
   ForestMat: {fileID: 2100000, guid: a921733e87d5ab2bab1ec5f55f2a5fd0, type: 2}
   PastureMat: {fileID: 2100000, guid: 36d249d2f77440eec8f86f4894a7fff9, type: 2}

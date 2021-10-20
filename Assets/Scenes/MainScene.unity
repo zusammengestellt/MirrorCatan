@@ -217,6 +217,7 @@ MonoBehaviour:
   - {fileID: 1840192524019036621, guid: fc535b115f4cd88b59adfc1f55138b04, type: 3}
   - {fileID: 5933004870310811684, guid: b8a586bd7f38b7f13aa5d5ab372361c2, type: 3}
   - {fileID: 2048947176852965137, guid: ebbf5336cbe7370c1b5c7a801e1bde3f, type: 3}
+  - {fileID: 1907784421191662524, guid: 9b8d4569933c45c2982148c0060a1913, type: 3}
   gameManagerPrefab: {fileID: 8014343728554814224, guid: 485991fda49c88005b18d16473ff906a, type: 3}
 --- !u!4 &40545742
 Transform:

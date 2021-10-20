@@ -5,6 +5,8 @@ using UnityEngine.UI;
 
 public class Card : MonoBehaviour
 {
+    private GameManager gm;
+
     public Resource resource;
 
     [Header("Card Materials")]
@@ -16,17 +18,10 @@ public class Card : MonoBehaviour
     public Material matWool;
 
     private Vector2 startPosition;
-    private bool selectable = false;
-    private bool selected = false;
 
-    private void OnEnable()
+    private void Start()
     {
-        GameManager.onNextTurn += OnNextTurn;
-    }
-
-    public void OnNextTurn(int newTurn)
-    {
-        selectable = false;
+        gm = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
     }
 
     public void SetResource(Resource res)
@@ -46,23 +41,15 @@ public class Card : MonoBehaviour
         GetComponent<Image>().material = mat;
     }
 
-    public void SelectCard()
+    
+    // Set in inspector for OnClick
+    public void RobberDiscard()
     {
-        Debug.Log(PlayerController.playerIndex);
-        
-        if (!selectable) { return; }
-
-        startPosition = this.gameObject.GetComponent<RectTransform>().position;
-
-        if (!selected)
+        if (gm.stillToDiscard[PlayerController.playerIndex] > 0)
         {
-            selected = true;
-            this.gameObject.GetComponent<RectTransform>().position = new Vector2(startPosition.x, startPosition.y + 10f);
+            Debug.Log("trying to discard this...");
+            
         }
-        else
-        {
-            selected = false;
-            this.gameObject.GetComponent<RectTransform>().position = new Vector2(startPosition.x, startPosition.y - 10f);
-        }      
+           
     }
 }
