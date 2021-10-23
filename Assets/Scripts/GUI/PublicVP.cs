@@ -20,6 +20,10 @@ public class PublicVP : MonoBehaviour
     void Update()
     {
         gm.CmdRecalculateVP();
-        label.text = $"VP: {gm.playerPublicVP[ez.forEnemyIndex]}+";
+
+        if (gm.GameState != GameManager.State.WINNER)
+            label.text = $"VP: {gm.playerPublicVP[ez.forEnemyIndex]}+";
+        else
+            label.text = $"VP: {gm.playerPrivateVP[ez.forEnemyIndex]}";
     }
 }

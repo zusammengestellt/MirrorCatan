@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Linq;
 using Mirror;
 
 public class GameBoard : NetworkBehaviour
@@ -11,6 +12,7 @@ public class GameBoard : NetworkBehaviour
     public GameObject PathPrefab;
     public GameObject NumberTokenPrefab;
     public GameObject RobberPrefab;
+    public GameObject HarborPrefab;
 
     public Material DesertMat;
     public Material ForestMat;
@@ -185,6 +187,9 @@ public class GameBoard : NetworkBehaviour
 
         // Connect the corners (PART TWO)
         // For edge paths, find the edge corners and rotate around them
+        List<Corner> edgeCorners = new List<Corner>();
+        List<(Corner,Corner)> edgeCornerPairs = new List<(Corner,Corner)>();
+        
         for (int i = 0; i < hexes.Length; i++)
         {
             Hex h = hexes[i];
@@ -214,10 +219,74 @@ public class GameBoard : NetworkBehaviour
                             cB.neighborCorners.Add(cA);
 
                         //Debug.Log($"With special edge logic, corner {cA.idNum} borders {cB.idNum}");
+
+                        // Grab list of edge corners for harbors
+                        if (!edgeCorners.Contains(cA))
+                            edgeCorners.Add(cA);
+                        if (!edgeCorners.Contains(cB))
+                            edgeCorners.Add(cB);
+                        
+                        if (!edgeCornerPairs.Contains((cA,cB)) && !edgeCornerPairs.Contains((cB,cA)))
+                            edgeCornerPairs.Add((cA,cB));                        
                     }
                 }
             }
         }
+
+        bool validCoast = true;
+        List<(Corner,Corner)> harborPairs = new List<(Corner, Corner)>();
+
+        // Calculate harbor corner locations
+        foreach ((Corner,Corner) coastline in edgeCornerPairs)
+        {
+            validCoast = true;
+            Corner cA = coastline.Item1;
+            Corner cB = coastline.Item2;
+            
+            foreach (Corner ca in cA.neighborCorners.Where(c => c != cB))
+                if (ca.isHarbor)
+                    validCoast = false;
+
+            foreach (Corner cb in cB.neighborCorners.Where(c => c != cA))
+                if (cb.isHarbor)
+                    validCoast = false;
+                
+            if (validCoast)
+            {
+                cA.isHarbor = cB.isHarbor = true;
+                harborPairs.Add((cA,cB));
+            }
+        }
+
+        Debug.Log(corners.Count(c => c.isHarbor));
+
+        // Calculate harbor types
+        List<Resource> harborTypes = new List<Resource>{ Resource.Wood, Resource.Brick, Resource.Wool, Resource.Grain, Resource.Ore };
+        int placedHarbors = 0;
+
+        foreach ((Corner,Corner) coastline in harborPairs)
+        {
+            Corner cA = coastline.Item1;
+            Corner cB = coastline.Item2;
+
+            if (harborTypes.Count > 0 && placedHarbors % 2 == 0)
+            {
+
+                var random = new System.Random();
+                int index = random.Next(harborTypes.Count);
+                Resource res = harborTypes[index];
+                
+                cA.harborType = cB.harborType = res;
+                harborTypes.Remove(res);
+            }
+            else
+            {
+                cA.harborType = cB.harborType = Resource.None;
+            }
+            placedHarbors++;
+            
+        }
+       
 
         // Calculate path positions
         for (int pathIndex = 0, i = 0; i < corners.Length; i++)
@@ -313,6 +382,16 @@ public class GameBoard : NetworkBehaviour
             cornerObjects[i].GetComponent<CornerComponent>().corner = corners[i];
             cornerObjects[i].transform.name = $"Corner{i}";
             corners[i].instance = cornerObjects[i];
+
+            if (corners[i].isHarbor)
+            {
+                GameObject harbor = Instantiate(HarborPrefab, corners[i].position, Quaternion.identity, this.transform);
+                
+                if (corners[i].harborType != Resource.None)
+                    harbor.GetComponentInChildren<Text>().text = $"{corners[i].harborType.ToString()}\n2:1";
+                else
+                    harbor.GetComponentInChildren<Text>().text = "Any\n3:1";
+            }
         }
 
         // Generate and spawn pathGameObjects.
@@ -333,6 +412,7 @@ public class GameBoard : NetworkBehaviour
         {
             tokenObjects[i] = (GameObject)Instantiate(NumberTokenPrefab, hexObjects[i].transform.position, Quaternion.Euler(0f,180f,0f));
         }
+
 
         CmdBoardReady();
     }
@@ -416,6 +496,15 @@ public class GameBoard : NetworkBehaviour
             rollDistribution[n] = t;
         }
 
+        // Randomize harbors
+        bool[] areHarbors = new bool[numCorners];
+        
+        for (int i = 0; i < corners.Length; i++)
+        {
+            areHarbors[i] = corners[i].isHarbor;
+        }
+        //
+        //
 
         // Wait for all clients to finish loading.
         yield return new WaitUntil(() => boardsReady >= GameManager.playerCount);
@@ -425,12 +514,12 @@ public class GameBoard : NetworkBehaviour
         resources = resDistribution;
         rolls = rollDistribution;
 
-        RpcUpdateBoard(resDistribution, rollDistribution);
+        RpcUpdateBoard(resDistribution, rollDistribution, areHarbors);
     }
 
 
     [ClientRpc]
-    public void RpcUpdateBoard(Resource[] newResDistribution, int[] newRollDistribution)
+    public void RpcUpdateBoard(Resource[] newResDistribution, int[] newRollDistribution, bool[] areHarbors)
     {
                 
         // Resources.
@@ -480,6 +569,12 @@ public class GameBoard : NetworkBehaviour
         {
             hexResources[i] = hexObjects[i].GetComponent<HexComponent>().resource;
             hexRolls[i] = hexObjects[i].GetComponent<HexComponent>().roll;
+        }
+
+        // Harbor corners
+        for (int i = 0; i < areHarbors.Length; i++)
+        {
+            corners[i].isHarbor = areHarbors[i];
         }
 
         CmdUpdateServer(hexResources, hexRolls);
@@ -652,6 +747,73 @@ public class GameBoard : NetworkBehaviour
         }
         return roadCount;
     }
+
+
+    public static int longestRoad = 0;
+    public static int longestRoadOwner = 0;
+    public static string longestRoadSummary = "";
+
+    public static int LongestRoadFinder()
+    {
+        List<Path> traversedPaths = new List<Path>();
+
+        int roadLength = 0;
+        int roadHead = 0;
+        string pathSummary = "";
+
+        for (int i = 0; i < paths.Length; i++)
+        {
+            traversedPaths.Clear();
+
+            // Head of road.
+            if (paths[i].owned)
+            {
+                roadHead = paths[i].idNum;
+                pathSummary = "";
+                Traverse(roadHead, null, paths[i], paths[i].playerOwner, traversedPaths, roadLength, pathSummary);
+            }
+
+        }
+        return longestRoadOwner;
+    }
+
+    public static void Traverse(int roadHead, Path twoRoadsAgo, Path prevRoad, int roadOwner, List<Path> traversedPaths, int roadLength, string pathSummary)
+    {
+        traversedPaths.Add(prevRoad);
+        roadLength += 1;
+        pathSummary += $"{prevRoad.idNum.ToString()} ";
+        Debug.Log($"(Player {roadOwner}) Road length of {roadLength}: {pathSummary}");
+
+        if (roadLength >= 5 && roadLength > longestRoad)
+        {
+            // New longest road owner!
+            longestRoad = roadLength;
+            longestRoadSummary = pathSummary;
+            longestRoadOwner = prevRoad.playerOwner;
+        }
+
+        foreach (Path p in prevRoad.connectedPaths)
+        {
+            if (p.owned && p.playerOwner == roadOwner)
+            {
+
+                if (!traversedPaths.Contains(p))
+                {
+                    if (twoRoadsAgo == null)
+                    {
+                        Traverse(roadHead, prevRoad, p, roadOwner, traversedPaths, roadLength, pathSummary);
+                    }
+                    else if (!twoRoadsAgo.connectedPaths.Contains(p))
+                    {
+                        Traverse(roadHead, prevRoad, p, roadOwner, traversedPaths, roadLength, pathSummary);
+                    }
+                }
+            }
+            
+        }
+
+    }
+
 }
 
 

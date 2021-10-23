@@ -17,6 +17,9 @@ public class NextTurnButton : MonoBehaviour
 
     private void Update()
     {
+        if (gm.GameState == GameManager.State.WINNER)
+            this.gameObject.SetActive(false);
+
         if (gm.GameState == GameManager.State.IDLE && PlayerController.playerIndex == gm.currentTurn)
             this.GetComponent<Button>().interactable = true;
         else
@@ -26,7 +29,6 @@ public class NextTurnButton : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                Debug.Log($"NextTurnButton: spacebar pressed by {PlayerController.playerIndex}");
                 pc.CmdRequestNextTurn(PlayerController.playerIndex);
             }
         }
@@ -34,7 +36,6 @@ public class NextTurnButton : MonoBehaviour
 
     public void OnClick()
     {
-        Debug.Log($"NextTurnButton: clicked by {PlayerController.playerIndex}");
         pc.CmdRequestNextTurn(PlayerController.playerIndex);
     }
 

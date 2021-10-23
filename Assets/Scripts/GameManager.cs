@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Mirror;
 
@@ -12,10 +13,12 @@ using Mirror;
 // executes GameObject.FindGameObjectWithTag("GameManager").
 
 public enum Resource { None, Brick, Grain, Ore, Wood, Wool }
+public enum Dev { None, Knight, KnightRevealed, Roads, Plenty, Monopoly, VP, VPRevealed }
 
 public class GameManager : NetworkBehaviour
 {
-    [Header("Test Settings")]
+    [Header("Game Settings")]
+    public int VPtoWin = 11;
     public bool skipSetupPhase = false;
     public bool fastRoll = false;
     public int startingWood;
@@ -33,42 +36,47 @@ public class GameManager : NetworkBehaviour
 
     [SyncVar] public int currentTurn = 0;
 
-    public enum State { ROLL, ROBBER, ENDROBBER, STEAL, IDLE, BUILD, TRADE, DEVCARD }
-    [SyncVar] public State GameState;
+    public enum State { ROLL, DISCARD, ROBBER, ENDROBBER, STEAL, IDLE, BUILD, TRADE, WINNER }
+    [SyncVar] public State GameState = State.IDLE;
+    [SyncVar] public bool setup = false;
 
     public SyncDictionary<int, NetworkIdentity> playerIds = new SyncDictionary<int, NetworkIdentity>();
     public SyncDictionary<int, string> playerNames = new SyncDictionary<int, string>();
     public readonly SyncDictionary<int, List<Resource>> playerResources = new SyncDictionary<int, List<Resource>>();
+    public readonly SyncDictionary<int, List<Dev>> playerDevCards = new SyncDictionary<int, List<Dev>>();
     public SyncDictionary<int, int> playerPublicVP = new SyncDictionary<int, int>();
     public SyncDictionary<int, int> playerPrivateVP = new SyncDictionary<int, int>();
     public SyncDictionary<int, int> stillToDiscard = new SyncDictionary<int, int>();
+    public SyncDictionary<int, bool> revealSelectedCards = new SyncDictionary<int, bool>();
+
+    public Dictionary<int, List<Resource>> playerSelectedCards = new Dictionary<int, List<Resource>>();
+    public Dictionary<int, bool> playerOfferingTrade = new Dictionary<int, bool>();
+
+
+    [SyncVar] public int largestArmyOwner = 0;
+    [SyncVar] public int longestRoadOwner = 0;
+    [SyncVar] public int harbormasterOwner = 0;
 
     public GameObject gameBoardPrefab;
     
     public static Resource[] resourceSortOrder = { Resource.Wood, Resource.Brick, Resource.Wool, Resource.Grain, Resource.Ore };
+    public static Dev[] devCardSortOrder = { Dev.Knight, Dev.Roads, Dev.Plenty, Dev.Monopoly, Dev.VP, Dev.KnightRevealed, Dev.VPRevealed };
+
+   
 
     private void Update()
     {
-        // Checks corner stats
-        /*
-        if (GameBoard.CornerUnderMouse() != null)
-        {
-            Corner c = GameBoard.CornerUnderMouse().GetComponent<CornerComponent>().corner;
-            Debug.Log($"{c.idNum}: {c.owned}, {c.playerOwner}");
-        }
-        */
+    
+        
 
-        // Debug commands.
-
-        // Shift+P: force idle
-        if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.P))
-            CmdDebugForceIdle();
             
     }
 
-    [Command(requiresAuthority=false)]
-    public void CmdDebugForceIdle()
-    {
+    
+
+    
+    private void Awake()
+    {        
         GameState = State.IDLE;
     }
 
@@ -79,30 +87,25 @@ public class GameManager : NetworkBehaviour
     {
         playerCount = syncPlayerCount;
         
+        // here because syncdict wasn't working
+        for (int index = 1; index <= playerCount; index++)
+        {
+            playerSelectedCards[index] = new List<Resource>();
+            playerOfferingTrade[index] = false;
+        }   
+
         if (isServer)
         {
-
-            // Set up dummy names
-            for (int index = 1; index <= playerCount; index++)
-            {
-                string name = "null";
-
-                switch (index)
-                {
-                    case 1:
-                        name = "Alsett"; break;
-                    case 2:
-                        name = "Anderswo"; break;
-                    case 3:
-                        name = "fritz"; break;    
-                }
-                playerNames[index] = name;
-            }
-
             // Set up playerResources
             for (int index = 1; index <= playerCount; index++)
             {
                 playerResources[index] = new List<Resource>();
+            }            
+
+            // Set up playerDevCards
+            for (int index = 1; index <= playerCount; index++)
+            {
+                playerDevCards[index] = new List<Dev>();
             }
 
             // Set up playerVP
@@ -117,6 +120,12 @@ public class GameManager : NetworkBehaviour
             for (int index = 1; index <= playerCount; index++)
             {
                 stillToDiscard[index] = 0;
+            }
+
+            // Set up revealSelectedCards
+            for (int index = 1; index <= playerCount; index++)
+            {
+                revealSelectedCards[index] = false;
             }
 
             // Spawn the game board (good luck)
@@ -160,6 +169,8 @@ public class GameManager : NetworkBehaviour
     [Server]
     private IEnumerator SetupPhase()
     {
+        setup = true;
+
         for (int i = 1; i <= playerCount; i++)
         {
             currentTurn = i;
@@ -182,6 +193,7 @@ public class GameManager : NetworkBehaviour
         }
 
         DistributeStartingResources();
+        setup = false;
         yield return null;
     }
 
@@ -293,7 +305,6 @@ public class GameManager : NetworkBehaviour
                         {
                             Debug.Log("Didn't click on an open path");
                             legalPlacement = false;
-                            //break;
                         }
 
                         // All roads can never not border an owned village or road
@@ -354,7 +365,7 @@ public class GameManager : NetworkBehaviour
                             Cursor.visible = true;
                             GameObject.Destroy(blueprintObj);
                             GameState = State.IDLE;
-
+                            
                             if (!starter)
                             {
                                 CmdRemoveResource(PlayerController.playerIndex, Resource.Wood);
@@ -518,6 +529,9 @@ public class GameManager : NetworkBehaviour
         p.owned = true;
         p.playerOwner = builderIndex;
 
+        // Look for any change in longest road.
+        longestRoadOwner = GameBoard.LongestRoadFinder();
+
         RpcBuildRoad(pathId, builderIndex, blueprintPos, blueprintRot);
     }
 
@@ -531,6 +545,7 @@ public class GameManager : NetworkBehaviour
 
         GameObject buildingObj = (GameObject)Instantiate(roadPrefab, p.position, p.rotation);
         buildingObj.GetComponent<MeshRenderer>().material = GetPlayerMaterial(builderIndex);
+        buildingObj.GetComponent<RoadComponent>().defaultMat = GetPlayerMaterial(builderIndex);
     }
 
     [Command(requiresAuthority = false)]
@@ -541,6 +556,8 @@ public class GameManager : NetworkBehaviour
         c.owned = true;
         c.playerOwner = builderIndex;
         c.devLevel = 1;
+
+        CheckHarbormaster();
 
         RpcBuildVillage(cornerId, builderIndex, blueprintPos, blueprintRot);
     }
@@ -566,6 +583,8 @@ public class GameManager : NetworkBehaviour
         c.owned = true;
         c.playerOwner = builderIndex;
         c.devLevel = 2;
+
+        CheckHarbormaster();
 
         RpcBuildCity(cornerId, builderIndex, blueprintPos, blueprintRot);
     }
@@ -604,13 +623,13 @@ public class GameManager : NetworkBehaviour
 
             case 3:
                 if (transparent)
-                    return matTransparentGreen;
-                return matGreen;
-            
-            case 4:
-                if (transparent)
                     return matTransparentYellow;
                 return matYellow;
+
+            case 4:
+                if (transparent)
+                    return matTransparentGreen;
+                return matGreen;
         }
 
         if (transparent)
@@ -623,6 +642,12 @@ public class GameManager : NetworkBehaviour
     // After the server adds a resource, it calls a ClientRpc to get
     // the event to fire on all handlers on each client.
     public static event Action<int, List<Resource>> onHandChanged;
+
+    [Command(requiresAuthority = false)]
+    public void CmdAddResource(int playerIndex, Resource res)
+    {
+        AddResource(playerIndex, res);
+    }
 
     [Server]
     private void AddResource(int playerIndex, Resource res, int quantity = 1)
@@ -655,6 +680,12 @@ public class GameManager : NetworkBehaviour
         playerResources[playerIndex] = newResources;
 
         RpcChangeResource(playerIndex, newResources);
+    }
+
+    [ClientRpc]
+    private void RpcChangeResource(int playerIndex, List<Resource> newResources)
+    {
+        onHandChanged?.Invoke(playerIndex, newResources);
     }
 
     [Server]
@@ -692,15 +723,242 @@ public class GameManager : NetworkBehaviour
     }
 
     [Command(requiresAuthority = false)]
+    public void CmdDiscarded(int playerIndex, Resource res)
+    {
+        // First decrement for the discarding player.        
+        int tempDiscard = stillToDiscard[playerIndex];
+        tempDiscard -= 1;
+        stillToDiscard[playerIndex] = tempDiscard;
+
+        RemoveResource(playerIndex, res);
+
+        // Then check if all players have fully discarded.
+        bool readyToContinue = true;
+
+        for (int i = 1; i <= playerCount; i++)
+        {
+            if (stillToDiscard[i] > 0)
+            {
+                readyToContinue = false;
+            }
+        }
+
+        if (readyToContinue)
+        {
+            GameState = State.ROBBER;
+        }
+    }
+
+
+    // After the server adds a DevCard, it calls a ClientRpc to get
+    // the event to fire on all handlers on each client.
+    public static event Action<int, List<Dev>> onDevCardChanged;
+
+    [Command(requiresAuthority = false)]
+    public void CmdAddDevCard(int playerIndex, Dev dev)
+    {
+        AddDevCard(playerIndex, dev);
+    }
+
+    [Server]
+    private void AddDevCard(int playerIndex, Dev dev)
+    {
+        List<Dev> newDevCards = playerDevCards[playerIndex];
+        newDevCards.Add(dev);
+        playerDevCards[playerIndex] = newDevCards;
+
+        RpcChangeDevCard(playerIndex, newDevCards);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdRemoveDevCard(int playerIndex, Dev dev)
+    {
+        RemoveDevCard(playerIndex, dev);
+    }
+
+    [Server]
+    private void RemoveDevCard(int playerIndex, Dev dev)
+    {
+        List<Dev> newDevCards = playerDevCards[playerIndex];
+        
+        if (newDevCards.Contains(dev))
+            newDevCards.Remove(dev);
+        else
+            Debug.LogWarning("Player doesn't have the dev card to remove");
+
+        playerDevCards[playerIndex] = newDevCards;
+
+        RpcChangeDevCard(playerIndex, newDevCards);
+    }
+
+    [ClientRpc]
+    private void RpcChangeDevCard(int playerIndex, List<Dev> newDevCards)
+    {
+        onDevCardChanged?.Invoke(playerIndex, newDevCards);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdBuyDevCard(int buyerIndex)
+    {
+        RemoveResource(buyerIndex, Resource.Wool);
+        RemoveResource(buyerIndex, Resource.Grain);
+        RemoveResource(buyerIndex, Resource.Ore);
+
+        // CHOOSE A RANDOM DEV CARD
+        int randomDevCard = UnityEngine.Random.Range(0,25);
+        Dev randomDev = Dev.None;
+
+        // 2/3 chance for knight, 1/3 for progress, 1/3 for VP
+        if (randomDevCard >= 0 && randomDevCard < 15)
+        {
+            randomDev = Dev.Knight;
+        }
+        else if (randomDevCard >= 15 && randomDevCard < 20)
+        {
+            // RANDOM PROGRESS CARD
+            randomDev = Dev.Monopoly;
+        }
+        else
+        {
+            randomDev = Dev.VP;
+        }
+
+        AddDevCard(buyerIndex, randomDev);
+    }
+
+
+    // Selected cards
+    [Command(requiresAuthority = false)]
+    public void CmdAddSelectedCard(int playerIndex, Resource res)
+    {
+        playerSelectedCards[playerIndex].Add(res);
+        RpcChangeSelectedCard(playerIndex, playerSelectedCards[playerIndex]);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdRemoveSelectedCard(int playerIndex, Resource res)
+    {
+        playerSelectedCards[playerIndex].Remove(res);
+        RpcChangeSelectedCard(playerIndex, playerSelectedCards[playerIndex]);
+    }
+
+    [ClientRpc]
+    private void RpcChangeSelectedCard(int playerIndex, List<Resource> selectedCards)
+    {
+        playerSelectedCards[playerIndex] = selectedCards;
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdClearSelectedCards()
+    {
+        for (int i = 1; i <= playerCount; i++)
+        {
+            playerSelectedCards[i].Clear();
+            RpcChangeSelectedCard(i, playerSelectedCards[i]);
+        }
+    }
+
+   
+    // Trade
+    [Command(requiresAuthority = false)]
+    public void CmdEnterTradeState(int requestor)
+    {
+        GameState = State.TRADE;
+        RpcChangeSelectedCard(requestor, playerSelectedCards[requestor]);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdExitTradeState()
+    {
+        GameState = State.IDLE;
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdOfferTrade(int playerIndex, bool offeringTrade)
+    {
+        playerOfferingTrade[playerIndex] = offeringTrade;
+        RpcOfferTrade(playerIndex, offeringTrade);
+    }
+
+    [ClientRpc]
+    public void RpcOfferTrade(int playerIndex, bool offeringTrade)
+    {
+        playerOfferingTrade[playerIndex] = offeringTrade;
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdProcessTrade(int otherTrader)
+    {
+        int trader = currentTurn;
+
+        foreach (Resource res in playerSelectedCards[trader])
+        {
+            AddResource(otherTrader, res);
+            RemoveResource(trader, res);
+        }
+        foreach (Resource res in playerSelectedCards[otherTrader])
+        {
+            AddResource(trader, res);
+            RemoveResource(otherTrader, res);
+        }
+
+        for (int i = 1; i <= playerCount; i++)
+        {
+            playerSelectedCards[i].Clear();
+            playerOfferingTrade[i] = false;
+            RpcOfferTrade(i, playerOfferingTrade[i]);
+            RpcChangeSelectedCard(i, playerSelectedCards[i]);
+        }
+        GameState = State.IDLE;
+    }
+
+    [Server]
+    public void CheckHarbormaster()
+    {
+        int harborPoints = 0;
+
+        for (int i = 1; i <= playerCount; i++)
+        {
+            harborPoints = GetHarborPoints(i);
+
+            if (harbormasterOwner == 0 && harborPoints >= 3)
+            {
+                harbormasterOwner = i;
+                // new harbormaster
+            }
+            
+            if (harbormasterOwner != 0 && harbormasterOwner != i)
+                if (harborPoints > GetHarborPoints(harbormasterOwner))
+                {
+                    harbormasterOwner = i;
+                    // new harbormaster
+                }
+        }
+    }
+
+    [Server]
+    public int GetHarborPoints(int playerIndex)
+    {
+        int harborPoints = 0;
+
+        foreach (Corner c in GameBoard.corners.ToList().Where(c => c.playerOwner == playerIndex && c.isHarbor))
+            harborPoints += c.devLevel;
+        
+        return harborPoints;
+    }
+
+    [Command(requiresAuthority = false)]
     public void CmdRecalculateVP()
     {
+        if (GameState == State.WINNER) { return;}
+
         for (int i = 1; i <= playerCount; i++)
         {
             playerPrivateVP[i] = 0;
             playerPublicVP[i] = 0;
         }           
 
-        // 1 for villages, 2 for cities
+        // 1 public VP for villages, 2 for cities
         for (int i = 0; i < GameBoard.numCorners; i++)
         {
             Corner c = GameBoard.corners[i];
@@ -718,32 +976,100 @@ public class GameManager : NetworkBehaviour
             }
         }
 
+        // 2 public VP for special cards
+        if (longestRoadOwner != 0)
+        {
+            playerPrivateVP[longestRoadOwner] += 2;
+            playerPublicVP[longestRoadOwner] += 2;
+        }
+        if (largestArmyOwner != 0)
+        {
+            playerPrivateVP[largestArmyOwner] += 2;
+            playerPublicVP[largestArmyOwner] += 2;
+        }
+        if (harbormasterOwner != 0)
+        {
+            playerPrivateVP[harbormasterOwner] += 2;
+            playerPublicVP[harbormasterOwner] += 2;
+        }
+
+        // 1 private VP for each  VP dev card, revealed or not
+        for (int i = 1; i <= playerCount; i++)
+            foreach (Dev dev in playerDevCards[i])
+                if (dev == Dev.VP || dev == Dev.VPRevealed)
+                    playerPrivateVP[i] += 1;
+
+        // 1 public VP for each revealed VP dev card
+        for (int i = 1; i <= playerCount; i++)
+            foreach (Dev dev in playerDevCards[i])
+                if (dev == Dev.VPRevealed)
+                    playerPublicVP[i] += 1;
+
+
+        // Look for a winner
+        for (int i = 1; i <= playerCount; i++)
+        {
+            // Need 11 VP since harbormaster is in game
+            if (playerPrivateVP[i] >= VPtoWin && i == currentTurn)
+            {
+                DeclareWinner(i);
+            }
+        }
     }
 
-    [ClientRpc]
-    private void RpcChangeResource(int playerIndex, List<Resource> newResources)
+    [Server]
+    private void DeclareWinner(int winnerIndex)
     {
-        onHandChanged?.Invoke(playerIndex, newResources);
+        GameState = State.WINNER;
+
+        // Reveal VP dev cards.
+        List<Dev> tempDevCards = new List<Dev>();
+
+        for (int i = 1; i <= playerCount; i++)
+        {
+            tempDevCards.Clear();
+
+            foreach (Dev dev in playerDevCards[i])
+            {
+                tempDevCards.Add(dev);
+            }
+
+            foreach (Dev dev in tempDevCards)
+            {
+                if (dev == Dev.VP)
+                {
+                    //RemoveDevCard(i, Dev.VP);
+                    AddDevCard(i, Dev.VPRevealed);
+                }
+            }
+        }
+        
+        
+        //
+        //
+        //
     }
 
-
-    public void OnEnable()
-    {
-
-    }
-
-
-    // Message board system
-    public static event Action<string> postMessage;
-
+    
     // Game state events
     public static event Action<int> onNextTurn;
     public static event Action<int, int> onRollDie;
 
-    
+    [Command(requiresAuthority = false)]
+    public void CmdRequestNextTurn(int requestor)
+    {
+        RequestNextTurn(requestor);
+    }
+
     [Server]
     public void RequestNextTurn(int requestor)
     {          
+        for (int i = 1; i <= playerCount; i++)
+        {
+            playerSelectedCards[i].Clear();
+            playerOfferingTrade[i] = false;
+            stillToDiscard[i] = 0;
+        }
 
         GameState = State.ROLL;
 
@@ -759,8 +1085,8 @@ public class GameManager : NetworkBehaviour
     [ClientRpc]
     private void RpcAdvanceNextTurn(int currentTurn)
     {
+        CmdClearSelectedCards();
         onNextTurn?.Invoke(currentTurn);
-        postMessage?.Invoke($"It is now Player {currentTurn}'s turn.");
     }
     
     // Trigger die roll animation on clients.
@@ -772,11 +1098,10 @@ public class GameManager : NetworkBehaviour
     {
         sfxDieRoll.Play();
         onRollDie?.Invoke(roll1, roll2);
-        postMessage?.Invoke($"Rolling die...");
     }
 
     [Server]
-    public void RequestFinishRoll(int result)
+    public void RequestFinishRoll(int result, bool isKnight = false)
     {
         if (result != 7)
         {
@@ -788,9 +1113,76 @@ public class GameManager : NetworkBehaviour
         }
         else
         {
+            // Check whether to go into DISCARD or ROBBER
+            bool discardPhase = false;
+
+            // Calculate stillToDiscard
+            if (!isKnight)
+            {
+                for (int i = 1; i <= playerCount; i++)
+                {
+                    if (playerResources[i].Count > 7)
+                    {
+                        stillToDiscard[i] = playerResources[i].Count / 2;
+                        discardPhase = true;
+                    }
+                }
+            }
+            
+            
             // Advance game state.
-            GameState = State.ROBBER;
+            if (discardPhase)
+                GameState = State.DISCARD;
+            else
+                GameState = State.ROBBER;
         }
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdPlayKnight(int knightPlayer)
+    {
+        // Before moving robber, check for LargestArmy.
+        int myKnightCount = 0;
+        foreach (Dev dev in playerDevCards[knightPlayer])
+        {
+            Debug.Log(dev);
+            if (dev == Dev.KnightRevealed)
+                myKnightCount += 1;
+        }
+        Debug.Log(largestArmyOwner);
+        Debug.Log(myKnightCount);
+
+        // If no one is largest army owner and player has 3 knights
+        if (largestArmyOwner == 0 && myKnightCount == 3)
+            largestArmyOwner = knightPlayer;
+        
+
+        // If player isn't already largest army owner and has 3 or more knights
+        if (largestArmyOwner != knightPlayer && myKnightCount >= 3)
+        {
+            // Find largest current army.
+            int largestArmy = 0;
+            for (int i = 1; i <= playerCount; i++)
+            {
+                int otherKnightCount = 0;
+                if (i != knightPlayer)
+                {
+                    foreach (Dev dev in playerDevCards[i])
+                    {
+                        if (dev == Dev.KnightRevealed)
+                            otherKnightCount += 1;
+                    }
+                }
+
+                if (otherKnightCount > largestArmy)
+                    largestArmy = otherKnightCount;
+            }
+            if (myKnightCount > largestArmy)
+                largestArmyOwner = knightPlayer;
+        }
+        
+        // Advance game state. Sets to 7 to trigger ROBBER, but isKnight: true to prevent DISCARD
+        RequestFinishRoll(7, true);
     }
 
     [Command(requiresAuthority = false)]
@@ -874,6 +1266,26 @@ public class GameManager : NetworkBehaviour
         GameState = State.IDLE;
     }
 
+    public static Color PlayerColor(int playerIndex)
+    {
+        switch (playerIndex)
+        {
+            case 1:
+                return Color.blue; break;
+            case 2:
+                return Color.red; break;
+            case 3:
+                return Color.yellow; break;
+            case 4:
+                return Color.green; break;
+        }
 
+        return Color.white;
+    }
 
+    [Command(requiresAuthority=false)]
+    public void CmdDebugForceIdle()
+    {
+        GameState = State.IDLE;
+    }
 }

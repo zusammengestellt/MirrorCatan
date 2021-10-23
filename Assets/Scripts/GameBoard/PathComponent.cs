@@ -9,5 +9,5 @@ public class PathComponent : NetworkBehaviour
 
     [SyncVar] public bool owned;
     [SyncVar] public int playerOwner = -1;
-    
+
 }

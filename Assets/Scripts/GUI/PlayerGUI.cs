@@ -50,9 +50,11 @@ public class PlayerGUI : MonoBehaviour
             {
                 GameObject newEnemyZone = Instantiate(enemyZonePrefab, Vector3.zero, Quaternion.identity, enemyZoneGrid.transform);
                 newEnemyZone.GetComponent<EnemyZone>().forEnemyIndex = i;
+                newEnemyZone.GetComponent<EnemyZone>().playerLabel.GetComponent<Text>().color = GameManager.PlayerColor(i);
+                //newEnemyZone.transform.Find("PlayerLabel").gameObject.GetComponent<Text>().text = $"Player {i}";
                 enemyZones[i] = newEnemyZone;
 
-                newEnemyZone.transform.Find("PlayerLabel").gameObject.GetComponent<Text>().text = $"Player {i}";
+                
             }
         }
        

@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class Card : MonoBehaviour
 {
     private GameManager gm;
+    public GameObject selector;
 
     public Resource resource;
 
@@ -17,9 +18,9 @@ public class Card : MonoBehaviour
     public Material matWood;
     public Material matWool;
 
-    private Vector2 startPosition;
+    private Vector3 startPosition = Vector3.zero;
 
-    private void Start()
+    private void Awake()
     {
         gm = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
     }
@@ -41,15 +42,94 @@ public class Card : MonoBehaviour
         GetComponent<Image>().material = mat;
     }
 
-    
     // Set in inspector for OnClick
     public void RobberDiscard()
     {
         if (gm.stillToDiscard[PlayerController.playerIndex] > 0)
         {
-            Debug.Log("trying to discard this...");
-            
+            gm.CmdDiscarded(PlayerController.playerIndex, resource);
+            GameObject.Destroy(this);
+
         }
-           
+    }
+
+    GameManager.State lastState = GameManager.State.IDLE;
+
+    private void Update()
+    {
+        // Reset on leave trade state
+        if (lastState == GameManager.State.TRADE && gm.GameState == GameManager.State.IDLE)
+        {
+            gm.CmdClearSelectedCards();
+            selector.GetComponent<RawImage>().enabled = false;
+            
+            if (startPosition != Vector3.zero)
+                transform.position = startPosition;
+        }
+
+        lastState = gm.GameState;
+    }
+
+    // Set in inspector for OnClick
+    public void SelectCard()
+    {
+       // Handle other players' select mechanics SEPARATELY to avoid issues with playerSelectedCards
+       if (gm.currentTurn == PlayerController.playerIndex && gm.GameState == GameManager.State.IDLE)
+       {
+
+            if (!selector.GetComponent<RawImage>().enabled)
+            {
+                // Add card to playerSelectedCards.
+                gm.CmdAddSelectedCard(PlayerController.playerIndex, resource);
+
+                // Activate selector.
+                startPosition = transform.position;
+
+                selector.GetComponent<RawImage>().enabled = true;
+                transform.Translate(new Vector3(0f, 10f, 0f));
+            }
+            else
+            {
+                // Remove card from playerSelected cards.
+                gm.CmdRemoveSelectedCard(PlayerController.playerIndex, resource);
+
+                // Deactivate selector.
+                selector.GetComponent<RawImage>().enabled = false;
+                transform.position = startPosition;
+
+            }
+
+       }
+       else if (gm.currentTurn != PlayerController.playerIndex && gm.GameState == GameManager.State.TRADE && !gm.playerOfferingTrade[PlayerController.playerIndex])
+       {
+           if (!selector.GetComponent<RawImage>().enabled)
+            {
+                // Add card to playerSelectedCards.
+                gm.CmdAddSelectedCard(PlayerController.playerIndex, resource);
+
+                // Activate selector.
+                startPosition = transform.position;
+
+                selector.GetComponent<RawImage>().enabled = true;
+                transform.Translate(new Vector3(0f, 10f, 0f));
+            }
+            else
+            {
+                // Remove card from playerSelected cards.
+                gm.CmdRemoveSelectedCard(PlayerController.playerIndex, resource);
+
+                // Deactivate selector.
+                selector.GetComponent<RawImage>().enabled = false;
+                transform.position = startPosition;
+
+            }
+       }
+       else if (gm.currentTurn != PlayerController.playerIndex && gm.GameState == GameManager.State.TRADE && startPosition != Vector3.zero && !gm.playerOfferingTrade[PlayerController.playerIndex])
+       {
+            selector.GetComponent<RawImage>().enabled = false;
+            transform.position = startPosition;
+       }
+
+        
     }
 }

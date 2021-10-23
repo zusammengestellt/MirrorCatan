@@ -11,159 +11,200 @@ using ParrelSync;
 
 public class MyNetworkManager : NetworkManager
 {
-    // Holds connections before/after players are assigned, game starts, etc.
-    internal static readonly List<NetworkConnection> waitingConnections = new List<NetworkConnection>();
-    internal static readonly List<NetworkConnection> playingConnections = new List<NetworkConnection>();
 
-    // Player-indexed reference to connections
+    internal static readonly List<NetworkConnection> waitingConnections = new List<NetworkConnection>();
+    
+
     internal static readonly Dictionary<int, NetworkConnection> playerConns = new Dictionary<int, NetworkConnection>();
     internal static readonly Dictionary<int, NetworkIdentity> playerIds = new Dictionary<int, NetworkIdentity>();
-
+    internal static readonly Dictionary<NetworkConnection, string> playerNames = new Dictionary<NetworkConnection, string>();
+    
+    public Lobby lobby;
     public GameObject gameManagerPrefab;
     
     // Runs on both Server and Client (Networking is NOT initialized when this fires)
     public override void Awake()
     {
         base.Awake();
+        Debug.Log("Server/client awake");
 
+        lobby = GameObject.Find("Lobby").GetComponent<Lobby>();
+    
         // [Dev-only] Check if this a ParrelSync clone to auto-start server or client.
         #if UNITY_EDITOR
         if (!ClonesManager.IsClone())
         {
+            lobby.gameObject.SetActive(false);
+
             Debug.Log("Not a ParrelSync clone, auto-starting server.");
             GameObject.Find("NetworkManager").GetComponent<MyNetworkManager>().StartServer();
         }
+        #endif
+
+        #if UNITY_SERVER
+            StartServer();
+        #endif
+
+        /*
+        #if UNITY_EDITOR
+        if (ClonesManager.IsClone())
         else
         {
             Debug.Log("Is a ParrelSync clone, auto-starting client.");
             GameObject.Find("NetworkManager").GetComponent<MyNetworkManager>().StartClient();
         }
         #endif
-
-        Debug.Log("This server/client has awoken.");
-
-        // [Dev-only] If testing in editor, set networkAddress to localhost.
-        #if UNITY_EDITOR
-        this.networkAddress = "localhost";
-        #endif
+        */
     }
 
-    // This is invoked when a server is started
+    private void Start()
+    {
+        Debug.Log("Server/client start");
+        networkAddress = lobby.ipAddress;
+
+        // [Dev-only] If testing in editor, set networkAddress to localhost.
+        /*
+        #if UNITY_EDITOR
+        networkAddress = "localhost";
+        #endif
+        */
+    }
+
+    public string PlayerName;
+    // Called by UI element inputFieldName.OnValueChanged
+    public void SetPlayername(string playername)
+    {
+        PlayerName = playername;
+    }
+
+    // Called by UI element inputIpAddress.OnValueChanged
+    public void SetHostname(string hostname)
+    {
+        networkAddress = hostname;
+    }
+
+    public struct CreatePlayerMessage : NetworkMessage
+    {
+        public string name;
+    }
+
+    public struct StartMessage : NetworkMessage { }
+
+    public struct NamesConnectedMessage : NetworkMessage
+    {
+        public string namesConnected;
+    }
+
+    
     [Server]
     public override void OnStartServer()
     {
         base.OnStartServer();
-        Debug.Log($"Server has started.");
+        NetworkServer.RegisterHandler<CreatePlayerMessage>(OnCreatePlayer);
+        NetworkServer.RegisterHandler<StartMessage>(StartGame);
+        Debug.Log("OnStartServer");
     }
-    
-    // This is invoked when the client is started.
+
     [Client]
     public override void OnStartClient()
     {
         base.OnStartClient();
-        Debug.Log($"This client has started.");
+
+        Debug.Log("trying to connect");
+        NetworkClient.RegisterHandler<NamesConnectedMessage>(UpdateNumConnected);
     }
 
-    // Called on the server when a client is ready (param: connection from client)
-    [Server]
-    public override void OnServerReady(NetworkConnection conn)
-    {
-        base.OnServerReady(conn);
-
-        if (!NetworkServer.active) return;  // safety valve
-
-        waitingConnections.Add(conn);
-        
-        Debug.Log($"{conn} with IP {conn.address} has connected. There are {waitingConnections.Count} waiting connections."); 
-
-        /*GameObject player = Instantiate(
-            NetworkManager.singleton.playerPrefab,
-            new Vector3(0f, 5f, 0f),
-            Quaternion.identity
-        );
-        NetworkServer.AddPlayerForConnection(conn, player);
-        
-        GameStart();*/
-        
-        // [Dev-only] Auto-start; currently using auto-spawn in NetworkManager instead
-        #if UNITY_EDITOR
-        int autoStartTrigger = 3;
-        if (waitingConnections.Count == autoStartTrigger)
-        {
-            Debug.Log($"There are {autoStartTrigger} players, auto-starting. The last player to ready up is assumed to be the match creator and the one who pressed start.");
-            StartCoroutine(GameStart());
-        }
-        #endif
-    }
-
-    // Called on the client when connected to a server
     [Client]
     public override void OnClientConnect(NetworkConnection conn)
     {
         base.OnClientConnect(conn);
-        Debug.Log($"Connected to server as {conn} with IP: {NetworkClient.connection.address}.");
+
+        // tell the server to create a player with this name
+        conn.Send(new CreatePlayerMessage { name = PlayerName });
+
+        lobby.connectingScreen.SetActive(false);
+        lobby.startScreen.SetActive(true);
     }
 
-    // Called on clients when disconnected from a server.
+    
+
+    [Server]
+    private void OnCreatePlayer(NetworkConnection conn, CreatePlayerMessage createPlayerMessage)
+    {
+        waitingConnections.Add(conn);
+
+        if (createPlayerMessage.name != "")
+            playerNames[conn] = createPlayerMessage.name;
+        else
+            playerNames[conn] = "Anonymous";
+
+        string nameList = $"{playerNames.Count} connected players:";
+        foreach (KeyValuePair <NetworkConnection, string> entry in playerNames)
+        {
+            nameList += $"\n {entry.Value}";
+        }
+        NetworkServer.SendToAll(new NamesConnectedMessage { namesConnected = nameList });
+
+        Debug.Log("OnCreatePlayer");
+        
+        /*
+        // [Dev-only] Auto-start
+        #if UNITY_EDITOR
+        int autoStartTrigger = 1;
+        if (waitingConnections.Count == autoStartTrigger)
+        {
+            Debug.Log($"There are {autoStartTrigger} players, auto-starting.");
+            StartCoroutine(GameStart());
+        }
+        #endif
+        */
+    }
+
+    [Client]
+    public void OnPressStart()
+    {
+        Debug.Log("client pressed start");
+        NetworkClient.connection.Send(new StartMessage{});
+    }
+
+    [Server]
+    public void StartGame(StartMessage startMessage)
+    {
+        StartCoroutine(GameStart());
+    }
+    
+    [Client]
+    public void UpdateNumConnected(NamesConnectedMessage namesConnectedMessage)
+    {
+        lobby.connectedLabel.GetComponentInChildren<Text>().text = namesConnectedMessage.namesConnected;
+    }
+
+    [Server]
+    public override void OnServerDisconnect(NetworkConnection conn)
+    {
+        base.OnServerDisconnect(conn);
+        Debug.Log($"{conn} disconnected.");
+
+        waitingConnections.Remove(conn);
+    }
+    
     [Client]
     public override void OnClientDisconnect(NetworkConnection conn)
     {
         base.OnClientDisconnect(conn);
         Debug.Log($"Disconnected from server.");
 
-        #if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-        #endif
+        lobby.loginScreen.SetActive(true);
+        lobby.connectingScreen.SetActive(false);
     }
 
-    // Called on the server when a client disconnects (param: connection from client)
-    [Server]
-    public override void OnServerDisconnect(NetworkConnection conn)
-    {
-        base.OnServerDisconnect(conn);
-        Debug.Log($"{conn} with IP {conn.address} has disconnected.");
-       
-        #if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-        #endif
-    }
-
-    // This is called when a client is stopped.
-    [Client]
-    public override void OnStopClient()
-    {
-        Debug.Log($"This client has stopped.");
-
-        #if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-        #endif
-    }
-
-    // This is called when a server is stopped - including when a host is stopped.
-    [Server]
-    public override void OnStopServer()
-    {
-        Debug.Log($"Server has stopped.");
-
-        #if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-        #endif
-    }
 
     [Server]
     IEnumerator GameStart()
     {
-        // waitingConnections are converted into playingConnections.
-        // Any later lobby work would only allow confirmed waiting connections to start.
-        foreach (NetworkConnection conn in waitingConnections)
-        {
-            playingConnections.Add(conn);
-        }
-        waitingConnections.Clear();
-
         // Assign each player connection a number (1-based, will be the playerIndex).
         int i = 1;
-        foreach (NetworkConnection conn in playingConnections)
+        foreach (NetworkConnection conn in waitingConnections)
         {
             playerConns[i] = conn;
             i++;
@@ -191,14 +232,16 @@ public class MyNetworkManager : NetworkManager
             playerIds[index] = conn.identity;
         }
         
-        // Can't have a SyncDictionary in the Network Manager, so here we map
-        // the normal Dictionary to gameManager's SyncDictionary
-        // (which then syncs itself with the clients).
+        // Can't have a SyncDictionary in the Network Manager, so here we map the normal Dictionary
+        // to gameManager's SyncDictionary, which then syncs itself with the clients.
         foreach (KeyValuePair<int, NetworkIdentity> entry in playerIds)
-        {
             gameManager.GetComponent<GameManager>().playerIds[entry.Key] = entry.Value;
-        }
-
+        
+        // Do the same for playerNames.
+        foreach (KeyValuePair<NetworkConnection, string> nameEntry in playerNames)
+            foreach (KeyValuePair<int, NetworkIdentity> idEntry in playerIds)
+                if (idEntry.Value.connectionToClient == nameEntry.Key)
+                    gameManager.GetComponent<GameManager>().playerNames[idEntry.Key] = nameEntry.Value;
 
     }
 }

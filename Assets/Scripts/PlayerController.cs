@@ -8,16 +8,20 @@ using Mirror;
 
 public class PlayerController : NetworkBehaviour
 {
+    public bool debugText = false;
+
     public PlayerController instance;
 
     private GameManager gm;
     private GameBoard gb;
+
     
     [SyncVar] public int syncPlayerIndex;
     public static int playerIndex;
 
     void Start()
     {
+
         gm = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
 
         if (!isLocalPlayer)
@@ -27,25 +31,27 @@ public class PlayerController : NetworkBehaviour
 
         if (isLocalPlayer)
         {
+            GameObject.Find("Lobby").SetActive(false);
             instance = this;
             playerIndex = syncPlayerIndex;
         }
         
     }
     
+
     private void Update()
     {
         if (!isLocalPlayer) { return; }
 
+        if (!debugText) { return; }
+
         if (GameBoard.CornerUnderMouse() != null)
         {
             Corner c = GameBoard.CornerUnderMouse().GetComponent<CornerComponent>().corner;
-            Debug.Log($"Corner: {c.idNum}, owned: {c.owned}, playerOwner: {c.playerOwner}");
         }
         else if (GameBoard.HexUnderMouse() != null)
         {
             Hex h = GameBoard.HexUnderMouse().GetComponent<HexComponent>().hex;
-            Debug.Log($"Hex: {h.id}, resource: {h.resource}, roll: {h.roll}");
         }
 
 
@@ -135,12 +141,40 @@ public class PlayerController : NetworkBehaviour
         else
             return false;
     }
+
+    [Client]
+    public bool CanAffordDevCard()
+    {  
+        int woolCount = 0;
+        int grainCount = 0;
+        int oreCount = 0;
+
+        foreach (Resource res in gm.playerResources[playerIndex])
+        {
+            switch (res)
+            {
+                case Resource.Wool:
+                    woolCount++;
+                    break;
+                case Resource.Grain:
+                    grainCount++;
+                    break;
+                case Resource.Ore:
+                    oreCount++;
+                    break;
+            }
+        }
+
+        if (woolCount >= 1 && grainCount >= 1 && oreCount >= 1)
+            return true;
+        else
+            return false;
+    }
     
 
     [Command]
     public void CmdRequestNextTurn(int requestor)
     {
-        Debug.Log($"next turn requested by {requestor}");
         gm.RequestNextTurn(requestor);
     }
 

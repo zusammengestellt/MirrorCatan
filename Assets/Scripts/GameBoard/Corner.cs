@@ -24,7 +24,9 @@ public class Corner
     public Dictionary<Corner,Path> neighborPaths;
 
     public int idNum;
-    
+    public bool isHarbor = false;
+    public Resource harborType;
+
     [System.NonSerialized] public bool owned = false;
     [System.NonSerialized] public int playerOwner = -1;
     [System.NonSerialized] public int devLevel = 0;

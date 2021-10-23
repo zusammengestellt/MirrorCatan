@@ -48,6 +48,8 @@ public class HandZone : MonoBehaviour
         float spacing = (handZoneMaxWidth - (resources.Count * cardWidth)) / (resources.Count + 1);
         this.GetComponent<GridLayoutGroup>().spacing = new Vector2(Mathf.Min(defaultCardSpacing, spacing), 0);
         this.GetComponent<RectTransform>().sizeDelta = new Vector2(Mathf.Min(handZoneMaxWidth, resources.Count * cardWidth + (resources.Count) * spacing + 10), this.GetComponent<RectTransform>().sizeDelta.y);
+        if (this.GetComponent<RectTransform>().sizeDelta.x < handZoneMaxWidth)
+            this.GetComponent<RectTransform>().sizeDelta = new Vector2(handZoneMaxWidth, this.GetComponent<RectTransform>().sizeDelta.y);
 
         // Instantiate the cards.
         foreach (Resource res in resourcesSorted)

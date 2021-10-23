@@ -84,9 +84,9 @@ public class DieRollZone : MonoBehaviour
 
         for (int i = 0; i < GameBoard.numHexes; i++)
         {
-
-            if (GameBoard.hexes[i].instance.GetComponent<HexComponent>().roll == result)
-                Debug.Log($"{GameBoard.hexes[i].Q},{GameBoard.hexes[i].R}");
+            int j = 1; j++;
+            //if (GameBoard.hexes[i].instance.GetComponent<HexComponent>().roll == result)
+                //Debug.Log($"{GameBoard.hexes[i].Q},{GameBoard.hexes[i].R}");
         }
 
 

@@ -42,7 +42,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 4592458285585544685c59e85cd14ba4, type: 3}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -191,6 +191,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
+  VPtoWin: 11
   skipSetupPhase: 0
   fastRoll: 0
   startingWood: 0
@@ -202,6 +203,10 @@ MonoBehaviour:
   syncPlayerCount: 0
   currentTurn: 0
   GameState: 4
+  setup: 0
+  largestArmyOwner: 0
+  longestRoadOwner: 0
+  harbormasterOwner: 0
   gameBoardPrefab: {fileID: 793211645052042603, guid: 16183d435d9d4fc029edfa95c81f2f0c, type: 3}
   roadBlueprint: {fileID: 7811781260273031914, guid: ffc9ca247d7b8548d93fe26898b17897, type: 3}
   villageBlueprint: {fileID: 2757051072579982292, guid: 406a2b12fc3781a3eb4a954295bb27d6, type: 3}

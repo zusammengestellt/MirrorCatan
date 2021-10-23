@@ -25,7 +25,6 @@ public class BuildCityButton : MonoBehaviour
 
     public void OnClick()
     {
-        Debug.Log($"BuildCityButton: clicked by {PlayerController.playerIndex}");
         gm.CmdRequestBuild(PlayerController.playerIndex, "City");
     }
 

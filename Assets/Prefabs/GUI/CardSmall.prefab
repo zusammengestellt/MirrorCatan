@@ -59,7 +59,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 2100000, guid: 24746d7535aea8132a7cfbbe2b0ad531, type: 2}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -67,7 +67,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 5afe565f5073e3828b02ad30d530e171, type: 3}
+  m_Sprite: {fileID: 0}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -90,6 +90,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cardOwner: 0
+  resource: 0
+  matCardback: {fileID: 2100000, guid: 24746d7535aea8132a7cfbbe2b0ad531, type: 2}
+  matBrick: {fileID: 2100000, guid: a906296c3bd65b66b9b822ec6844267a, type: 2}
+  matGrain: {fileID: 2100000, guid: 140a74d302906045eac10061b503f658, type: 2}
+  matOre: {fileID: 2100000, guid: afc6da404d988cedcaddea4aa4de63f2, type: 2}
+  matWood: {fileID: 2100000, guid: f3e9bca92607a9652ac47aa363b8dfdf, type: 2}
+  matWool: {fileID: 2100000, guid: bc818422097b3adbe8a1f476b82f3cb5, type: 2}
 --- !u!114 &-5878802323113211364
 MonoBehaviour:
   m_ObjectHideFlags: 0

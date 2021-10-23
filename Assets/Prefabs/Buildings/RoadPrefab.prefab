@@ -109,6 +109,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 077a68d9ad9c85a8dad478eb830f88a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  defaultMat: {fileID: 0}
+  highlightMat: {fileID: 2100000, guid: fa814bd9c8ab9ca139745c46e0701bb3, type: 2}
 --- !u!114 &-1181109291927683623
 MonoBehaviour:
   m_ObjectHideFlags: 0
