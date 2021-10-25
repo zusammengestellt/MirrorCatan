@@ -17,6 +17,8 @@ public enum Dev { None, Knight, KnightRevealed, Roads, Plenty, Monopoly, VP, VPR
 
 public class GameManager : NetworkBehaviour
 {
+    public GameObject pointerPrefab;
+
     [Header("Game Settings")]
     public int VPtoWin = 11;
     public bool skipSetupPhase = false;
@@ -26,9 +28,6 @@ public class GameManager : NetworkBehaviour
     public int startingBrick;
     public int startingGrain;
     public int startingOre;
-
-    [Header("Audio Files")]
-    public AudioSource sfxDieRoll;
 
     [Header("Remaining Vars")]
     [SyncVar] public int syncPlayerCount;
@@ -61,18 +60,42 @@ public class GameManager : NetworkBehaviour
     
     public static Resource[] resourceSortOrder = { Resource.Wood, Resource.Brick, Resource.Wool, Resource.Grain, Resource.Ore };
     public static Dev[] devCardSortOrder = { Dev.Knight, Dev.Roads, Dev.Plenty, Dev.Monopoly, Dev.VP, Dev.KnightRevealed, Dev.VPRevealed };
+  
 
-   
-
-    private void Update()
+    [Command (requiresAuthority = false)]
+    public void CmdPlayAudio(int clipIndex)
     {
-    
-        
-
-            
+        RpcPlayAudio(clipIndex);
     }
 
-    
+    [ClientRpc]
+    public void RpcPlayAudio(int clipIndex)
+    {    
+        GetComponentInChildren<AudioManager>().PlayAudio(clipIndex);
+    }
+
+    public void PlayLocalAudio(int clipIndex)
+    {
+        GetComponentInChildren<AudioManager>().PlayAudio(clipIndex);
+    }
+
+    [TargetRpc]
+    public void RpcLocalAudio(NetworkConnection target, int clipIndex)
+    {
+        GetComponentInChildren<AudioManager>().PlayAudio(clipIndex);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdInterruptAudio()
+    {
+        RpcInterruptAudio();
+    }
+
+    [ClientRpc]
+    public void RpcInterruptAudio()
+    {
+        GetComponentInChildren<AudioManager>().InterruptAudio();
+    }
 
     
     private void Awake()
@@ -142,6 +165,15 @@ public class GameManager : NetworkBehaviour
     {
         yield return new WaitUntil(() => playerIds != null);
         yield return new WaitForSeconds(1f);
+
+        /*
+        for (int i = 1; i <= playerCount; i++)
+        {
+            GameObject pointer = Instantiate(pointerPrefab);
+            pointer.GetComponent<Pointer>().owner = i;
+            NetworkServer.Spawn(pointer);
+        }
+        */
 
         if (!skipSetupPhase)
         {
@@ -530,9 +562,21 @@ public class GameManager : NetworkBehaviour
         p.playerOwner = builderIndex;
 
         // Look for any change in longest road.
+        int previousLongestRoadOwner = longestRoadOwner;
         longestRoadOwner = GameBoard.LongestRoadFinder();
 
+        if (!setup)
+            RpcPlayAudio(UnityEngine.Random.Range(13, 16));
+
+        if (longestRoadOwner != previousLongestRoadOwner)
+        {
+            RpcInterruptAudio();
+            RpcPlayAudio(30);
+        }
+
         RpcBuildRoad(pathId, builderIndex, blueprintPos, blueprintRot);
+
+        
     }
 
     [ClientRpc]
@@ -557,6 +601,8 @@ public class GameManager : NetworkBehaviour
         c.playerOwner = builderIndex;
         c.devLevel = 1;
 
+        if (!setup)
+            RpcPlayAudio(UnityEngine.Random.Range(13, 16));
         CheckHarbormaster();
 
         RpcBuildVillage(cornerId, builderIndex, blueprintPos, blueprintRot);
@@ -584,6 +630,8 @@ public class GameManager : NetworkBehaviour
         c.playerOwner = builderIndex;
         c.devLevel = 2;
 
+        if (!setup)
+            RpcPlayAudio(UnityEngine.Random.Range(13, 16));
         CheckHarbormaster();
 
         RpcBuildCity(cornerId, builderIndex, blueprintPos, blueprintRot);
@@ -607,7 +655,7 @@ public class GameManager : NetworkBehaviour
 
     // Assigns player numbers to materials
     [Client]
-    private Material GetPlayerMaterial(int player, bool transparent = false)
+    public Material GetPlayerMaterial(int player, bool transparent = false)
     {
         switch (player)
         {
@@ -715,6 +763,7 @@ public class GameManager : NetworkBehaviour
                 {
                     if (c.owned)
                     {
+                        RpcLocalAudio(playerIds[c.playerOwner].connectionToClient, UnityEngine.Random.Range(16,19));
                         AddResource(c.playerOwner, GameBoard.hexes[i].resource);
                     }
                 }
@@ -916,7 +965,8 @@ public class GameManager : NetworkBehaviour
     public void CheckHarbormaster()
     {
         int harborPoints = 0;
-
+        int previousHarbormasterOwner = harbormasterOwner;
+        
         for (int i = 1; i <= playerCount; i++)
         {
             harborPoints = GetHarborPoints(i);
@@ -933,6 +983,12 @@ public class GameManager : NetworkBehaviour
                     harbormasterOwner = i;
                     // new harbormaster
                 }
+        }
+
+        if (harbormasterOwner != previousHarbormasterOwner)
+        {
+            RpcInterruptAudio();
+            RpcPlayAudio(32);
         }
     }
 
@@ -1091,18 +1147,23 @@ public class GameManager : NetworkBehaviour
     
     // Trigger die roll animation on clients.
     [Server]
-    private void RollDie() => RpcRollDie(UnityEngine.Random.Range(1,7), UnityEngine.Random.Range(1,7));
+    private void RollDie()
+    {
+        RpcRollDie(UnityEngine.Random.Range(1,7), UnityEngine.Random.Range(1,7));
+        RpcPlayAudio(UnityEngine.Random.Range(1,6));
+    }
 
     [ClientRpc]
     private void RpcRollDie(int roll1, int roll2)
     {
-        sfxDieRoll.Play();
         onRollDie?.Invoke(roll1, roll2);
     }
 
     [Server]
     public void RequestFinishRoll(int result, bool isKnight = false)
     {
+        GameState = State.IDLE;
+
         if (result != 7)
         {
             // Distribute new resources.
@@ -1119,6 +1180,8 @@ public class GameManager : NetworkBehaviour
             // Calculate stillToDiscard
             if (!isKnight)
             {
+                RpcPlayAudio(11);
+
                 for (int i = 1; i <= playerCount; i++)
                 {
                     if (playerResources[i].Count > 7)
@@ -1138,19 +1201,22 @@ public class GameManager : NetworkBehaviour
         }
     }
 
+
     [Command(requiresAuthority = false)]
     public void CmdPlayKnight(int knightPlayer)
     {
+        RpcPlayAudio(10);
+
         // Before moving robber, check for LargestArmy.
         int myKnightCount = 0;
+        int previousLargestArmyOwner = largestArmyOwner;
+
         foreach (Dev dev in playerDevCards[knightPlayer])
         {
             Debug.Log(dev);
             if (dev == Dev.KnightRevealed)
                 myKnightCount += 1;
         }
-        Debug.Log(largestArmyOwner);
-        Debug.Log(myKnightCount);
 
         // If no one is largest army owner and player has 3 knights
         if (largestArmyOwner == 0 && myKnightCount == 3)
@@ -1177,8 +1243,16 @@ public class GameManager : NetworkBehaviour
                 if (otherKnightCount > largestArmy)
                     largestArmy = otherKnightCount;
             }
+
+            // Check for new largest army.
             if (myKnightCount > largestArmy)
                 largestArmyOwner = knightPlayer;
+        }
+
+        if (largestArmyOwner != previousLargestArmyOwner)
+        {
+            RpcInterruptAudio();
+            RpcPlayAudio(31);
         }
         
         // Advance game state. Sets to 7 to trigger ROBBER, but isKnight: true to prevent DISCARD
@@ -1286,6 +1360,12 @@ public class GameManager : NetworkBehaviour
     [Command(requiresAuthority=false)]
     public void CmdDebugForceIdle()
     {
+        for (int i = 1; i < playerCount; i++)
+        {
+            stillToDiscard[i] = 0;
+            playerSelectedCards[i].Clear();
+        }
+        
         GameState = State.IDLE;
     }
 }

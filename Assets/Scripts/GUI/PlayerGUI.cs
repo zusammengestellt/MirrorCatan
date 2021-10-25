@@ -17,7 +17,7 @@ public class PlayerGUI : MonoBehaviour
     public GameObject dieRollZonePrefab;
     private Dictionary<int, GameObject> enemyZones;
     
-    public TextMeshProUGUI messageBoard;
+    public GameObject buildingCosts;
 
     private void Start()
     { 
@@ -28,7 +28,7 @@ public class PlayerGUI : MonoBehaviour
 
     void Update()
     {
-        
+        buildingCosts.SetActive(Input.GetKey(KeyCode.Tab));
     }
 
     // Wait until playerIndex is set (players have spawned)

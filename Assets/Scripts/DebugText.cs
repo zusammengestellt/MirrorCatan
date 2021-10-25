@@ -6,36 +6,57 @@ using UnityEngine.UI;
 
 public class DebugText : MonoBehaviour
 {
-    public Text label;
-    public RawImage bg;
+    public Text menu;
+    public RawImage menu_bg;
+
+    public Text sidebar;
+    public RawImage sidebar_bg;
 
     private GameManager gm;
 
-    private bool toggle = false;
+    private bool menuToggle = false;
 
     // Start is called before the first frame update
     void Start()
     {
-        bg = GetComponentInChildren<RawImage>();
+        menu_bg = GetComponentInChildren<RawImage>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.O))
-            toggle = !toggle;
-        
-        bg.enabled = toggle;
-        label.enabled = toggle;
-
-        if (!toggle) { return; }
-
         if (gm == null)
         {
             if (GameObject.FindGameObjectWithTag("GameController") != null)
                 gm = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
             return;
         }
+
+
+        // Sidebar
+        sidebar.enabled = sidebar_bg.enabled = Input.GetKey(KeyCode.LeftShift);
+
+        if (Input.GetKey(KeyCode.LeftShift))
+        {
+            //sidebar.text = 
+            Corner c = GameBoard.CornerUnderMouse()?.GetComponent<CornerComponent>().corner;
+            Hex h = GameBoard.HexUnderMouse()?.GetComponent<HexComponent>().hex;
+
+            if (c != null)
+                sidebar.text = $"Corner {c.idNum}: owned {c.owned}, {c.playerOwner}\nisHarbor: {c.isHarbor}, type: {c.harborType.ToString()}";
+            else if (h != null)
+                 sidebar.text = $"Hex {h.id}: resource: {h.resource}, roll: {h.roll}\nrobbed: {h.robbed}";
+        }
+
+
+        // Menu
+        if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.O))
+            menuToggle = !menuToggle;
+        
+        menu_bg.enabled = menuToggle;
+        menu.enabled = menuToggle;
+
+        if (!menuToggle) { return; }
 
         ProcessInput();
 
@@ -79,7 +100,7 @@ public class DebugText : MonoBehaviour
         newText += "QWERT: add Wood/Brick/Wool/Grain/Ore\n";
         newText += "ASDFG: remove Wood/Brick/Wool/Grain/Ore";
         
-        label.text = newText;
+        menu.text = newText;
 
     }
 

@@ -1,13 +1,13 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class BuildCityButton : MonoBehaviour
-{
+{    
     private GameManager gm;
     private PlayerController pc;
-    
 
     public void Start()
     {
@@ -25,6 +25,9 @@ public class BuildCityButton : MonoBehaviour
 
     public void OnClick()
     {
+        gm.CmdClearSelectedCards();
+        
+        gm.PlayLocalAudio(6);
         gm.CmdRequestBuild(PlayerController.playerIndex, "City");
     }
 

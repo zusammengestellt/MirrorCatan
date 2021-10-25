@@ -5,6 +5,8 @@ using Mirror;
 
 public class RobberComponent : NetworkBehaviour
 {    
+    private GameManager gm;
+    
     public GameObject HexSelector;
     private GameObject currentHexSelector;
     private GameObject animatedHexSelector;
@@ -18,7 +20,7 @@ public class RobberComponent : NetworkBehaviour
 
     private void Start()
     {
-
+        gm = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
     }
 
     [Command(requiresAuthority = false)]
@@ -38,10 +40,10 @@ public class RobberComponent : NetworkBehaviour
     {       
         if (isServer) { return; }
         
-        GameManager gm = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
-        if (gm.GameState != GameManager.State.ROBBER) { return; }
-        if (gm.currentTurn != PlayerController.playerIndex) { return; }
-
+        if (gm.GameState != GameManager.State.ROBBER || gm.currentTurn != PlayerController.playerIndex) 
+        {
+            return;
+        }            
 
         Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hitInfo;
@@ -56,7 +58,6 @@ public class RobberComponent : NetworkBehaviour
                 {
                     startPosition = hitInfo.point;
                     startHex = GameBoard.HexUnderMouse().GetComponent<HexComponent>().hex;
-                    Cursor.visible = false;
                     isDragging = true;
                 }
             }
@@ -103,7 +104,6 @@ public class RobberComponent : NetworkBehaviour
                 location = startHex;
             }
 
-            Cursor.visible = true;
             isDragging = false;
             
             if (currentHexSelector != null)
@@ -124,7 +124,6 @@ public class RobberComponent : NetworkBehaviour
         {
             location = startHex;
             transform.position = startPosition;
-            Cursor.visible = true;
             isDragging = false;
 
             if (currentHexSelector != null)

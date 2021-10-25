@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,7 +9,6 @@ public class BuildVillageButton : MonoBehaviour
     private GameManager gm;
     private PlayerController pc;
     
-
     public void Start()
     {
         gm = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
@@ -25,6 +25,9 @@ public class BuildVillageButton : MonoBehaviour
 
     public void OnClick()
     {
+        gm.CmdClearSelectedCards();
+        
+        gm.PlayLocalAudio(6);
         gm.CmdRequestBuild(PlayerController.playerIndex, "Village");
     }
 

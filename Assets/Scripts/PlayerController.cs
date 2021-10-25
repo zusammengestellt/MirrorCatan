@@ -14,7 +14,6 @@ public class PlayerController : NetworkBehaviour
 
     private GameManager gm;
     private GameBoard gb;
-
     
     [SyncVar] public int syncPlayerIndex;
     public static int playerIndex;

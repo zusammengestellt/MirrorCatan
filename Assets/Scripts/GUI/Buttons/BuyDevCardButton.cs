@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,6 +6,7 @@ using UnityEngine.UI;
 
 public class BuyDevCardButton : MonoBehaviour
 {
+
     private GameManager gm;
     private PlayerController pc;
     
@@ -25,7 +27,9 @@ public class BuyDevCardButton : MonoBehaviour
 
     public void OnClick()
     {
-        Debug.Log($"BuildDevCardButton: clicked by {PlayerController.playerIndex}");
+        gm.CmdClearSelectedCards();
+        
+        gm.PlayLocalAudio(UnityEngine.Random.Range(7,10));
         gm.CmdBuyDevCard(PlayerController.playerIndex);
     }
 }

@@ -103,7 +103,7 @@ public class CommandLabel : MonoBehaviour
         else
         {
             label.color = Color.black;
-            label.text = $"Player {gm.currentTurn} is moving the robber...";
+            label.text = $"{gm.playerNames[gm.currentTurn]} is moving the robber...";
         }
     }
 
@@ -119,7 +119,7 @@ public class CommandLabel : MonoBehaviour
         else
         {
             label.color = Color.black;
-            label.text = $"Player {gm.currentTurn} is stealing...";
+            label.text = $"{gm.playerNames[gm.currentTurn]} is stealing...";
         }
     }
 
@@ -130,7 +130,7 @@ public class CommandLabel : MonoBehaviour
         if (PlayerController.playerIndex != gm.currentTurn)
         {
             label.color = Color.red;
-            label.text = $"Player {gm.currentTurn} has offered a trade!";
+            label.text = $"{gm.playerNames[gm.currentTurn]} has offered a trade.";
         }
         else
         {
@@ -141,11 +141,14 @@ public class CommandLabel : MonoBehaviour
 
     private void Winner()
     {
+        gm.CmdInterruptAudio();
+        gm.CmdPlayAudio(12);
+        
         Show();
 
         label.color = Color.red;
         label.fontSize = 40;
-        label.text = $"Player {gm.currentTurn} has won the game!";
+        label.text = $"{gm.playerNames[gm.currentTurn]} has won the game!";
         
  
     }

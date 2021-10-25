@@ -258,8 +258,6 @@ public class GameBoard : NetworkBehaviour
             }
         }
 
-        Debug.Log(corners.Count(c => c.isHarbor));
-
         // Calculate harbor types
         List<Resource> harborTypes = new List<Resource>{ Resource.Wood, Resource.Brick, Resource.Wool, Resource.Grain, Resource.Ore };
         int placedHarbors = 0;

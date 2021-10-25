@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,7 +8,6 @@ public class BuildRoadButton : MonoBehaviour
 {
     private GameManager gm;
     private PlayerController pc;
-    
 
     public void Start()
     {
@@ -25,7 +25,9 @@ public class BuildRoadButton : MonoBehaviour
 
     public void OnClick()
     {
-        Debug.Log($"BuildRoadButton: clicked by {PlayerController.playerIndex}");
+        gm.CmdClearSelectedCards();
+        
+        gm.PlayLocalAudio(6);
         gm.CmdRequestBuild(PlayerController.playerIndex, "Road");
     }
 

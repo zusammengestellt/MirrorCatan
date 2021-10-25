@@ -61,13 +61,12 @@ public class MyNetworkManager : NetworkManager
     {
         Debug.Log("Server/client start");
         networkAddress = lobby.ipAddress;
+        lobby.loginScreen.SetActive(true);
 
         // [Dev-only] If testing in editor, set networkAddress to localhost.
-        /*
         #if UNITY_EDITOR
         networkAddress = "localhost";
         #endif
-        */
     }
 
     public string PlayerName;

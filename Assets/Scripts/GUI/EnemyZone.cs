@@ -224,6 +224,7 @@ public class EnemyZone : MonoBehaviour
 
     public void OnAcceptTrade()
     {
+        gm.CmdPlayAudio(UnityEngine.Random.Range(7,10));
         gm.CmdProcessTrade(forEnemyIndex);
     }
 

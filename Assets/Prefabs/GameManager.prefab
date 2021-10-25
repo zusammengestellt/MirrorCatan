@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &4470187888486700668
+--- !u!1 &2553356672011591713
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,22 +8,23 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 3810115030267011324}
-  - component: {fileID: 1219772452642260930}
+  - component: {fileID: 2553356672011591726}
+  - component: {fileID: 2553356672011591724}
+  - component: {fileID: 2553356672011591727}
   m_Layer: 0
-  m_Name: Audio Source
+  m_Name: AudioManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &3810115030267011324
+--- !u!4 &2553356672011591726
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4470187888486700668}
+  m_GameObject: {fileID: 2553356672011591713}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -31,18 +32,18 @@ Transform:
   m_Father: {fileID: 8014343728554814225}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!82 &1219772452642260930
+--- !u!82 &2553356672011591724
 AudioSource:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4470187888486700668}
+  m_GameObject: {fileID: 2553356672011591713}
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: 4592458285585544685c59e85cd14ba4, type: 3}
-  m_PlayOnAwake: 0
+  m_audioClip: {fileID: 0}
+  m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -127,6 +128,39 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2553356672011591727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553356672011591713}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41684817e9232861c8bc75a321a1da45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dieRoll1: {fileID: 8300000, guid: 4030ebe3306b6ba478dcdf585b6868e9, type: 3}
+  dieRoll2: {fileID: 8300000, guid: d5c3b4e6930f69b40b2fda2398dab4d7, type: 3}
+  dieRoll3: {fileID: 8300000, guid: 199f0aa881fe0334b9f15c30484cba24, type: 3}
+  dieRoll4: {fileID: 8300000, guid: 9e3af0c402f4d864e9903ef3f2a9ef0b, type: 3}
+  dieRoll5: {fileID: 8300000, guid: 5f21b9f78b4ba174987a91a963e121d6, type: 3}
+  buttonPress: {fileID: 8300000, guid: 2a160c052138d81419899224ffdb349e, type: 3}
+  coins1: {fileID: 8300000, guid: 51c7f726c8ee3844aa1033d4a7f07939, type: 3}
+  coins2: {fileID: 8300000, guid: 8f335d51e78352a4c91cc02b072041ac, type: 3}
+  coins3: {fileID: 8300000, guid: a9c7a2ec786734d4cb322675facd3de8, type: 3}
+  playKnight: {fileID: 8300000, guid: 00dd1f0389899b149809dba1ca9db8e9, type: 3}
+  robber: {fileID: 8300000, guid: 931f99b7a4c027142be22ad3320d39d0, type: 3}
+  gameWon: {fileID: 8300000, guid: 116586f8b90f4194e9aa65814bba071d, type: 3}
+  build1: {fileID: 8300000, guid: 379df1d758dcf574ebcb6bc28bb38440, type: 3}
+  build2: {fileID: 8300000, guid: 75e2b4fae1b19934383fe8c0c2001ea7, type: 3}
+  build3: {fileID: 8300000, guid: 3ef6b5caded457d4980f6b9af6a909b7, type: 3}
+  cards1: {fileID: 8300000, guid: 0d663ae5393c7ab47b38f0d422817f07, type: 3}
+  cards2: {fileID: 8300000, guid: 20e2e99292d23724db1143389d8ad93f, type: 3}
+  cards3: {fileID: 8300000, guid: 990dca75ba96b304cbd0febdc954f0e0, type: 3}
+  longestRoad: {fileID: 8300000, guid: da1d7647287843b4a88bd7c5fc325bcc, type: 3}
+  largestArmy: {fileID: 8300000, guid: 34e85d693383be847abf0cc1fac873cd, type: 3}
+  harbormaster: {fileID: 8300000, guid: cb6bca78ec2de584297008b7e79a4893, type: 3}
 --- !u!1 &8014343728554814224
 GameObject:
   m_ObjectHideFlags: 0
@@ -156,7 +190,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
-  - {fileID: 3810115030267011324}
+  - {fileID: 2553356672011591726}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -191,6 +225,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
+  pointerPrefab: {fileID: 5096958837635387660, guid: 6dc31a3d58ea3da43b8c1d09fcb8028b, type: 3}
   VPtoWin: 11
   skipSetupPhase: 0
   fastRoll: 0
@@ -199,7 +234,6 @@ MonoBehaviour:
   startingBrick: 0
   startingGrain: 0
   startingOre: 0
-  sfxDieRoll: {fileID: 1219772452642260930}
   syncPlayerCount: 0
   currentTurn: 0
   GameState: 4

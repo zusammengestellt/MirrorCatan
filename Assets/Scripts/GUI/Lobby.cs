@@ -28,7 +28,5 @@ public class Lobby : MonoBehaviour
     {
         ipAddress = defaultIpAddress.text;
     }
-
-
     
 }

@@ -90,12 +90,7 @@ public class Card : MonoBehaviour
             }
             else
             {
-                // Remove card from playerSelected cards.
-                gm.CmdRemoveSelectedCard(PlayerController.playerIndex, resource);
-
-                // Deactivate selector.
-                selector.GetComponent<RawImage>().enabled = false;
-                transform.position = startPosition;
+                Deselect();
 
             }
 
@@ -115,13 +110,7 @@ public class Card : MonoBehaviour
             }
             else
             {
-                // Remove card from playerSelected cards.
-                gm.CmdRemoveSelectedCard(PlayerController.playerIndex, resource);
-
-                // Deactivate selector.
-                selector.GetComponent<RawImage>().enabled = false;
-                transform.position = startPosition;
-
+                Deselect();
             }
        }
        else if (gm.currentTurn != PlayerController.playerIndex && gm.GameState == GameManager.State.TRADE && startPosition != Vector3.zero && !gm.playerOfferingTrade[PlayerController.playerIndex])
@@ -131,5 +120,15 @@ public class Card : MonoBehaviour
        }
 
         
+    }
+
+    private void Deselect()
+    {
+        // Remove card from playerSelected cards.
+        gm.CmdRemoveSelectedCard(PlayerController.playerIndex, resource);
+
+        // Deactivate selector.
+        selector.GetComponent<RawImage>().enabled = false;
+        transform.position = startPosition;
     }
 }

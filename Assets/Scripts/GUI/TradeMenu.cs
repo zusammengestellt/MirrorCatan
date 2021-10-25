@@ -167,6 +167,8 @@ public class TradeMenu : MonoBehaviour
 
     public void OnClickExchangeButton()
     {
+        gm.CmdPlayAudio(UnityEngine.Random.Range(7,10));
+        
         int quantity = exchangeRates[selectedResource];
         int i = 0;
 

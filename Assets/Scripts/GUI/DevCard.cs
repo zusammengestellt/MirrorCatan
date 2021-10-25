@@ -49,6 +49,8 @@ public class DevCard : MonoBehaviour
     // Set in inspector for OnClick
     public void OnClick()
     {
+        gm.CmdClearSelectedCards();
+        
         if (gm.currentTurn == PlayerController.playerIndex && gm.GameState == GameManager.State.IDLE)
         {
             // Play knight card.
