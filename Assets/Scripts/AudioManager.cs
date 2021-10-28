@@ -58,13 +58,13 @@ public class AudioManager : MonoBehaviour
     public AudioClip buttonPress, coins1, coins2, coins3;
     public AudioClip playKnight, robber, gameWon;
     public AudioClip build1, build2, build3;
-    public AudioClip cards1, cards2, cards3;
+    public AudioClip cards1, cards2, cards3, yourTurn;
+
     public AudioClip longestRoad, largestArmy, harbormaster;
 
 
     private AudioClip SelectAudioClip(int clipIndex)
     {
-        Debug.Log($"in SelectAudioIndex: {clipIndex}");
         switch (clipIndex)
         {
             case 1: return dieRoll1; break;
@@ -89,6 +89,7 @@ public class AudioManager : MonoBehaviour
             case 16: return cards1; break;
             case 17: return cards2; break;
             case 18: return cards3; break;
+            case 19: return yourTurn; break;
 
             case 30: return longestRoad; break;
             case 31: return largestArmy; break;

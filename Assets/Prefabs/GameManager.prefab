@@ -158,6 +158,7 @@ MonoBehaviour:
   cards1: {fileID: 8300000, guid: 0d663ae5393c7ab47b38f0d422817f07, type: 3}
   cards2: {fileID: 8300000, guid: 20e2e99292d23724db1143389d8ad93f, type: 3}
   cards3: {fileID: 8300000, guid: 990dca75ba96b304cbd0febdc954f0e0, type: 3}
+  yourTurn: {fileID: 8300000, guid: 7a9cbf574e5fa1246b6889e67acc83ea, type: 3}
   longestRoad: {fileID: 8300000, guid: da1d7647287843b4a88bd7c5fc325bcc, type: 3}
   largestArmy: {fileID: 8300000, guid: 34e85d693383be847abf0cc1fac873cd, type: 3}
   harbormaster: {fileID: 8300000, guid: cb6bca78ec2de584297008b7e79a4893, type: 3}
@@ -236,18 +237,20 @@ MonoBehaviour:
   startingOre: 0
   syncPlayerCount: 0
   currentTurn: 0
-  GameState: 4
-  setup: 0
   largestArmyOwner: 0
   longestRoadOwner: 0
   harbormasterOwner: 0
   gameBoardPrefab: {fileID: 793211645052042603, guid: 16183d435d9d4fc029edfa95c81f2f0c, type: 3}
+  boardHud: {fileID: 0}
+  GameState: 5
+  setup: 0
   roadBlueprint: {fileID: 7811781260273031914, guid: ffc9ca247d7b8548d93fe26898b17897, type: 3}
   villageBlueprint: {fileID: 2757051072579982292, guid: 406a2b12fc3781a3eb4a954295bb27d6, type: 3}
   cityBlueprint: {fileID: 1996329257321247558, guid: ebee02852c823b1148a30a043297d13b, type: 3}
   roadPrefab: {fileID: 1955742914849834568, guid: 77c8574e99a4915a09e949f1f271db31, type: 3}
   villagePrefab: {fileID: 2002379560364057952, guid: f46196e5dc5b8ec2499f18a8e09bdfc4, type: 3}
   cityPrefab: {fileID: 7034511087653067505, guid: 5fb489148b462846a8dd0516479d2acb, type: 3}
+  selectorRingPrefab: {fileID: 6613442703290642787, guid: c196d12f0d4a77c7586072024d42111f, type: 3}
   matBlue: {fileID: 2100000, guid: 3a100fadb3d745117b929161b65fbc62, type: 2}
   matRed: {fileID: 2100000, guid: 9d88870735dd1a8bd83a9bb1ea0ca1e4, type: 2}
   matGreen: {fileID: 2100000, guid: f696411841f7cbbc3a4e6699e7ef8bdb, type: 2}

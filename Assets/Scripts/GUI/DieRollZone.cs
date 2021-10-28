@@ -51,7 +51,7 @@ public class DieRollZone : MonoBehaviour
         GameManager.onRollDie += StartRollDie;
     }
 
-    private void StartRollDie(int roll1, int roll2)
+    public void StartRollDie(int roll1, int roll2)
     {
         die1.SetActive(true);
         die2.SetActive(true);
@@ -92,7 +92,7 @@ public class DieRollZone : MonoBehaviour
 
         // Three calls to roll die. Only active player should
         // call back, otherwise resources generate X times.
-        pc.CmdFinishRoll(PlayerController.playerIndex, result);
+        gm.CmdFinishRoll(PlayerController.playerIndex, result);
         yield return null;
     }
 

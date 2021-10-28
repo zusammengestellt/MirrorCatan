@@ -364,7 +364,7 @@ public class GameBoard : NetworkBehaviour
 
         for (int i = 0; i < numHexes; i++)
         {
-            hexObjects[i] = Instantiate(HexPrefab, hexes[i].position, Quaternion.identity);
+            hexObjects[i] = Instantiate(HexPrefab, hexes[i].position, Quaternion.identity, this.transform);
             hexObjects[i].GetComponent<HexComponent>().hex = hexes[i];
             hexObjects[i].GetComponent<HexComponent>().id = i;
             hexObjects[i].transform.name = $"Hex{i}";
@@ -494,12 +494,16 @@ public class GameBoard : NetworkBehaviour
             rollDistribution[n] = t;
         }
 
-        // Randomize harbors
+        // Prepare harbors for sync
         bool[] areHarbors = new bool[numCorners];
+        Resource[] harborTypes = new Resource[numCorners];
         
         for (int i = 0; i < corners.Length; i++)
         {
             areHarbors[i] = corners[i].isHarbor;
+
+            if (corners[i].isHarbor)
+                harborTypes[i] = corners[i].harborType;
         }
         //
         //
@@ -512,12 +516,12 @@ public class GameBoard : NetworkBehaviour
         resources = resDistribution;
         rolls = rollDistribution;
 
-        RpcUpdateBoard(resDistribution, rollDistribution, areHarbors);
+        RpcSyncBoards(resDistribution, rollDistribution, areHarbors, harborTypes);
     }
 
 
     [ClientRpc]
-    public void RpcUpdateBoard(Resource[] newResDistribution, int[] newRollDistribution, bool[] areHarbors)
+    public void RpcSyncBoards(Resource[] newResDistribution, int[] newRollDistribution, bool[] areHarbors, Resource[] harborTypes)
     {
                 
         // Resources.
@@ -573,6 +577,9 @@ public class GameBoard : NetworkBehaviour
         for (int i = 0; i < areHarbors.Length; i++)
         {
             corners[i].isHarbor = areHarbors[i];
+
+            if (corners[i].isHarbor)
+                corners[i].harborType = harborTypes[i];
         }
 
         CmdUpdateServer(hexResources, hexRolls);
@@ -750,6 +757,7 @@ public class GameBoard : NetworkBehaviour
     public static int longestRoad = 0;
     public static int longestRoadOwner = 0;
     public static string longestRoadSummary = "";
+    public static List<Path> longestRoadSummaryRoute = new List<Path>();
 
     public static int LongestRoadFinder()
     {
@@ -758,6 +766,7 @@ public class GameBoard : NetworkBehaviour
         int roadLength = 0;
         int roadHead = 0;
         string pathSummary = "";
+        List<Path> pathSummaryRoute = new List<Path>();
 
         for (int i = 0; i < paths.Length; i++)
         {
@@ -768,18 +777,25 @@ public class GameBoard : NetworkBehaviour
             {
                 roadHead = paths[i].idNum;
                 pathSummary = "";
-                Traverse(roadHead, null, paths[i], paths[i].playerOwner, traversedPaths, roadLength, pathSummary);
+                pathSummaryRoute = new List<Path>();
+                Traverse(roadHead, null, paths[i], paths[i].playerOwner, traversedPaths, roadLength, pathSummary, pathSummaryRoute);
             }
 
         }
+
+        // test announce longest pathSummaryRoute to then try with LineRenderer
+        foreach (Path p in pathSummaryRoute)
+            Debug.Log(p.idNum);
+
         return longestRoadOwner;
     }
 
-    public static void Traverse(int roadHead, Path twoRoadsAgo, Path prevRoad, int roadOwner, List<Path> traversedPaths, int roadLength, string pathSummary)
+    public static void Traverse(int roadHead, Path twoRoadsAgo, Path prevRoad, int roadOwner, List<Path> traversedPaths, int roadLength, string pathSummary, List<Path> pathSummaryRoute)
     {
         traversedPaths.Add(prevRoad);
         roadLength += 1;
         pathSummary += $"{prevRoad.idNum.ToString()} ";
+        pathSummaryRoute.Add(prevRoad);
         Debug.Log($"(Player {roadOwner}) Road length of {roadLength}: {pathSummary}");
 
         if (roadLength >= 5 && roadLength > longestRoad)
@@ -787,6 +803,7 @@ public class GameBoard : NetworkBehaviour
             // New longest road owner!
             longestRoad = roadLength;
             longestRoadSummary = pathSummary;
+            longestRoadSummaryRoute = pathSummaryRoute;
             longestRoadOwner = prevRoad.playerOwner;
         }
 
@@ -799,11 +816,11 @@ public class GameBoard : NetworkBehaviour
                 {
                     if (twoRoadsAgo == null)
                     {
-                        Traverse(roadHead, prevRoad, p, roadOwner, traversedPaths, roadLength, pathSummary);
+                        Traverse(roadHead, prevRoad, p, roadOwner, traversedPaths, roadLength, pathSummary, pathSummaryRoute);
                     }
                     else if (!twoRoadsAgo.connectedPaths.Contains(p))
                     {
-                        Traverse(roadHead, prevRoad, p, roadOwner, traversedPaths, roadLength, pathSummary);
+                        Traverse(roadHead, prevRoad, p, roadOwner, traversedPaths, roadLength, pathSummary, pathSummaryRoute);
                     }
                 }
             }

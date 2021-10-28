@@ -34,7 +34,7 @@ public class CommandLabel : MonoBehaviour
 
     private void Update()
     {
-        if (gm.setup)
+        if (gm.setup && (gm.GameState == GameManager.State.IDLE || gm.GameState == GameManager.State.BUILD))
             Setup();
         else if (gm.GameState == GameManager.State.DISCARD)
             Discard();
@@ -71,6 +71,8 @@ public class CommandLabel : MonoBehaviour
     private void Discard()
     {
         Show();
+
+        if (!gm.stillToDiscard.ContainsKey(PlayerController.playerIndex)) { return; }
 
         int stillToDiscard = gm.stillToDiscard[PlayerController.playerIndex];
         if (stillToDiscard > 0)

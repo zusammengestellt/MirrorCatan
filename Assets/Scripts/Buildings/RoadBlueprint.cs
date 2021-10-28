@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class RoadBlueprint : MonoBehaviour
 {
+    [Range(0.0f, 10.0f)] public float heightAboveBoard;
+
     void Start()
     {
 
@@ -18,13 +20,13 @@ public class RoadBlueprint : MonoBehaviour
         {
             gameObject.GetComponent<MeshRenderer>().enabled = true;
             
-            transform.position = new Vector3(hit.rigidbody.position.x, 0.05f, hit.rigidbody.position.z);
+            transform.position = new Vector3(hit.rigidbody.position.x, heightAboveBoard, hit.rigidbody.position.z);
             transform.rotation = hit.rigidbody.rotation;
         }
         else if (Physics.Raycast(ray, out hit, 50000.0f, (1 << 8)))
         {
             gameObject.GetComponent<MeshRenderer>().enabled = true;
-            transform.position = new Vector3(hit.point.x, 0.05f, hit.point.z);
+            transform.position = new Vector3(hit.point.x, heightAboveBoard, hit.point.z);
         }
         else
         {

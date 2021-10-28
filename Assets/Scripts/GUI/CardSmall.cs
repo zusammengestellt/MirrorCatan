@@ -54,7 +54,7 @@ public class CardSmall : MonoBehaviour
         if (gm.currentTurn == PlayerController.playerIndex && gm.GameState == GameManager.State.STEAL)
         {
             if (GameBoard.IsStealTarget(cardOwner))
-                gm.CmdRequestStealRandom(cardOwner, PlayerController.playerIndex);
+                gm.CmdRequestStealCard(cardOwner, PlayerController.playerIndex);
         }
     }
 }

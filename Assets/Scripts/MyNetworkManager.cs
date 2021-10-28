@@ -11,30 +11,30 @@ using ParrelSync;
 
 public class MyNetworkManager : NetworkManager
 {
-
     internal static readonly List<NetworkConnection> waitingConnections = new List<NetworkConnection>();
-    
-
     internal static readonly Dictionary<int, NetworkConnection> playerConns = new Dictionary<int, NetworkConnection>();
     internal static readonly Dictionary<int, NetworkIdentity> playerIds = new Dictionary<int, NetworkIdentity>();
     internal static readonly Dictionary<NetworkConnection, string> playerNames = new Dictionary<NetworkConnection, string>();
+    internal static readonly Dictionary<NetworkConnection, bool> playerReady = new Dictionary<NetworkConnection, bool>();
     
-    public Lobby lobby;
     public GameObject gameManagerPrefab;
     
+    public AudioSource audioSourceIntro;
+    public AudioSource audioSource;
+    public AudioClip introClip;
+    public AudioClip buttonClip;
+
     // Runs on both Server and Client (Networking is NOT initialized when this fires)
     public override void Awake()
     {
         base.Awake();
         Debug.Log("Server/client awake");
-
-        lobby = GameObject.Find("Lobby").GetComponent<Lobby>();
-    
+   
         // [Dev-only] Check if this a ParrelSync clone to auto-start server or client.
         #if UNITY_EDITOR
         if (!ClonesManager.IsClone())
         {
-            lobby.gameObject.SetActive(false);
+            Lobby.SetActive(false);
 
             Debug.Log("Not a ParrelSync clone, auto-starting server.");
             GameObject.Find("NetworkManager").GetComponent<MyNetworkManager>().StartServer();
@@ -44,29 +44,22 @@ public class MyNetworkManager : NetworkManager
         #if UNITY_SERVER
             StartServer();
         #endif
-
-        /*
-        #if UNITY_EDITOR
-        if (ClonesManager.IsClone())
-        else
-        {
-            Debug.Log("Is a ParrelSync clone, auto-starting client.");
-            GameObject.Find("NetworkManager").GetComponent<MyNetworkManager>().StartClient();
-        }
-        #endif
-        */
     }
 
     private void Start()
     {
         Debug.Log("Server/client start");
-        networkAddress = lobby.ipAddress;
-        lobby.loginScreen.SetActive(true);
+        networkAddress = Lobby.GetComponent<Lobby>().ipAddress;
 
         // [Dev-only] If testing in editor, set networkAddress to localhost.
         #if UNITY_EDITOR
         networkAddress = "localhost";
         #endif
+
+        audioSource.clip = buttonClip;
+        audioSourceIntro.clip = introClip;
+        audioSourceIntro.Play();
+        StartCoroutine(LogoAnimated());
     }
 
     public string PlayerName;
@@ -82,17 +75,13 @@ public class MyNetworkManager : NetworkManager
         networkAddress = hostname;
     }
 
-    public struct CreatePlayerMessage : NetworkMessage
-    {
-        public string name;
-    }
-
+    public struct CreatePlayerMessage : NetworkMessage { public string name; }
+    public struct ReadyMessage : NetworkMessage { public bool isReady; }
+    public struct AllReadyMessage : NetworkMessage { public bool allReady; }
+    public struct LobbyListMessage : NetworkMessage { public string lobbyList; }
+    public struct ResetReadyMessage : NetworkMessage { }
     public struct StartMessage : NetworkMessage { }
-
-    public struct NamesConnectedMessage : NetworkMessage
-    {
-        public string namesConnected;
-    }
+    public struct ClientStartMessage : NetworkMessage { }
 
     
     [Server]
@@ -100,6 +89,7 @@ public class MyNetworkManager : NetworkManager
     {
         base.OnStartServer();
         NetworkServer.RegisterHandler<CreatePlayerMessage>(OnCreatePlayer);
+        NetworkServer.RegisterHandler<ReadyMessage>(ReadyChange);
         NetworkServer.RegisterHandler<StartMessage>(StartGame);
         Debug.Log("OnStartServer");
     }
@@ -108,10 +98,91 @@ public class MyNetworkManager : NetworkManager
     public override void OnStartClient()
     {
         base.OnStartClient();
-
-        Debug.Log("trying to connect");
-        NetworkClient.RegisterHandler<NamesConnectedMessage>(UpdateNumConnected);
+        NetworkClient.RegisterHandler<LobbyListMessage>(UpdateClientLobbyList);
+        NetworkClient.RegisterHandler<AllReadyMessage>(AllReadyChange);
+        NetworkClient.RegisterHandler<ResetReadyMessage>(ResetReady);
+        NetworkClient.RegisterHandler<ClientStartMessage>(ClientStartGame);
     }
+
+
+
+    [Header("GUI Elements")]
+    public GameObject Lobby;
+    private bool localReady = false;
+    private bool allReady = true;
+
+    [Header("Logo")]
+    public GameObject Background;
+    public GameObject Logo;
+    public GameObject LogoSmall;
+
+    private IEnumerator LogoAnimated()
+    {
+        float logoStep = 0.0025f;
+        float menuStep = 0.0005f;
+
+        Background.SetActive(true);
+        Logo.SetActive(true);
+
+        yield return new WaitForSeconds(1f);
+
+        for (int i = 255; i >= 0; i--)
+        {
+            Logo.GetComponent<Image>().color = new Color32(255, 255, 255, (byte)i);
+            yield return new WaitForSeconds(logoStep);
+        }
+
+        LoginScreen.SetActive(true);
+        
+        Image logoSmall = LogoSmall.GetComponent<Image>();
+        Image[] loginButtons = LoginScreen.GetComponentsInChildren<Image>();
+        Text[] loginTexts = LoginScreen.GetComponentsInChildren<Text>();
+        
+        // Set button backgrounds and text fuly transparent.
+        for (int i = 0; i < loginButtons.Length; i++)
+            loginButtons[i].color = new Color32(48, 48, 48, 0);
+
+        for (int i = 0; i < loginTexts.Length; i++)
+            loginTexts[i].color = new Color32(255, 255, 255, 0);
+
+        // Fade them in (along with LogoSmall)
+        for (int i = 0; i <= 255; i++)
+        {
+            for (int j = 0; j < loginButtons.Length; j++)
+                loginButtons[j].color = new Color32(48, 48, 48, (byte)i);
+
+            for (int j = 0; j < loginTexts.Length; j++)
+                loginTexts[j].color = new Color32(255, 255, 255, (byte)i);
+
+            logoSmall.color = new Color32(255, 255, 255, (byte)i); 
+            
+            yield return new WaitForSeconds(menuStep);
+        }
+    }
+
+    [Header("LoginScreen")]
+    public GameObject LoginScreen;
+
+    public void OnConnectButton()
+    {
+        audioSource.Play();
+        LoginScreen.SetActive(false);   
+        ConnectingScreen.SetActive(true);
+
+        localReady = false;
+
+        StartClient();
+    }
+
+    [Client]
+    public void OnExitButton()
+    {
+        audioSource.Play();
+        Application.Quit();
+    }
+
+    [Header("ConnectingScreen")]
+    public GameObject ConnectingScreen;
 
     [Client]
     public override void OnClientConnect(NetworkConnection conn)
@@ -121,11 +192,57 @@ public class MyNetworkManager : NetworkManager
         // tell the server to create a player with this name
         conn.Send(new CreatePlayerMessage { name = PlayerName });
 
-        lobby.connectingScreen.SetActive(false);
-        lobby.startScreen.SetActive(true);
+        ConnectingScreen.SetActive(false);
+        StartScreen.SetActive(true);
+
     }
 
-    
+    [Header("StartScreen")]
+    public GameObject StartScreen;
+    public GameObject ConnectedLabel;
+    public GameObject ReadyButton;
+    public GameObject NotReadyButton;
+    public GameObject StartButton;
+    public GameObject LeaveButton;
+
+    [Header("LoadScreen")]
+    public GameObject LoadScreen;
+
+    [Client]
+    public void OnReadyButton()
+    {
+        audioSource.Play();        
+
+        localReady = !localReady;
+        
+        ReadyButton.SetActive(!localReady);
+        NotReadyButton.SetActive(localReady);
+        
+        NetworkClient.connection.Send(new ReadyMessage { isReady = localReady });
+    }
+
+    [Client]
+    public void OnLeaveButton()
+    {
+        audioSource.Play();
+
+        StopClient();
+
+        ReadyButton.SetActive(true);
+        NotReadyButton.SetActive(false);
+        StartButton.GetComponent<Button>().enabled = false;
+        StartScreen.SetActive(false);
+
+        LoginScreen.SetActive(true);
+    }
+
+    ///////////////
+    // First the server creates a player and updates:
+    // waitingConnections
+    // playerNames
+    // playerReady
+    // Each Client's lobby list
+    ///////////////
 
     [Server]
     private void OnCreatePlayer(NetworkConnection conn, CreatePlayerMessage createPlayerMessage)
@@ -137,64 +254,130 @@ public class MyNetworkManager : NetworkManager
         else
             playerNames[conn] = "Anonymous";
 
-        string nameList = $"{playerNames.Count} connected players:";
-        foreach (KeyValuePair <NetworkConnection, string> entry in playerNames)
-        {
-            nameList += $"\n {entry.Value}";
-        }
-        NetworkServer.SendToAll(new NamesConnectedMessage { namesConnected = nameList });
+        playerReady[conn] = false;
+    
+        UpdateLobbyList();
 
-        Debug.Log("OnCreatePlayer");
+        Debug.Log($"{conn}: {playerNames[conn]} has joined.");
+    }
+
+    ///////////////
+    // Next the server waits until a player presses the ready button.
+    // Updates each player's lobby list accordingly.
+    // Then checks if all players are ready.
+    // Updates Start buttons interactable with value of allReady
+    ///////////////
+
+    [Server]
+    public void ReadyChange(NetworkConnection conn, ReadyMessage readyMessage)
+    {
+        playerReady[conn] = readyMessage.isReady;
         
-        /*
-        // [Dev-only] Auto-start
-        #if UNITY_EDITOR
-        int autoStartTrigger = 1;
-        if (waitingConnections.Count == autoStartTrigger)
-        {
-            Debug.Log($"There are {autoStartTrigger} players, auto-starting.");
-            StartCoroutine(GameStart());
-        }
-        #endif
-        */
+        UpdateLobbyList();
+
+        allReady = true;
+        foreach (KeyValuePair<NetworkConnection, bool> entry in playerReady)
+            allReady = allReady && entry.Value;
+        
+        NetworkServer.SendToAll(new AllReadyMessage{ allReady = allReady });
     }
 
     [Client]
-    public void OnPressStart()
+    public void AllReadyChange(AllReadyMessage allReadyMessage)
     {
-        Debug.Log("client pressed start");
-        NetworkClient.connection.Send(new StartMessage{});
+        StartButton.GetComponent<Button>().interactable = allReadyMessage.allReady;
+    }
+
+    [Client]
+    public void OnStartButton()
+    {
+        NetworkClient.Send(new StartMessage {});
     }
 
     [Server]
-    public void StartGame(StartMessage startMessage)
+    private void UpdateLobbyList()
     {
-        StartCoroutine(GameStart());
+        string nameList = $"{playerNames.Count} connected players:";
+        foreach (KeyValuePair <NetworkConnection, string> entry in playerNames)
+        {
+            nameList += $"\n{entry.Value}";
+            if (playerReady[entry.Key])
+                nameList += " [READY]";
+        }
+        NetworkServer.SendToAll(new LobbyListMessage { lobbyList = nameList });
     }
-    
+
     [Client]
-    public void UpdateNumConnected(NamesConnectedMessage namesConnectedMessage)
+    public void UpdateClientLobbyList(LobbyListMessage lobbyListMessage)
     {
-        lobby.connectedLabel.GetComponentInChildren<Text>().text = namesConnectedMessage.namesConnected;
+        ConnectedLabel.GetComponentInChildren<Text>().text = lobbyListMessage.lobbyList;
     }
+
+    [Client]
+    public void ResetReady(ResetReadyMessage resetReadyMessage)
+    {
+        localReady = false;
+        ReadyButton.SetActive(true);
+        NotReadyButton.SetActive(false);
+    }
+
+    ///////////////
+    // When a client disconnects (leaves), some clean-up is needed:
+    // remove waitingConnection
+    // remove playerName
+    // remove playerReady
+    // All other players are set to playerReady false (d/c stops game start)
+    // Those players also get their ready buttons reset
+    // Update each Client's lobby list
+    ///////////////
 
     [Server]
     public override void OnServerDisconnect(NetworkConnection conn)
     {
         base.OnServerDisconnect(conn);
-        Debug.Log($"{conn} disconnected.");
+        Debug.Log($"{conn}: {playerNames[conn]} has left.");
 
         waitingConnections.Remove(conn);
+
+        if (playerNames[conn] != null)
+            playerNames.Remove(conn);
+
+        // Reset playerReady.
+        playerReady.Clear();
+        foreach (NetworkConnection readyConn in waitingConnections)
+            playerReady[readyConn] = false;
+        NetworkServer.SendToAll(new ResetReadyMessage { });
+
+        string nameList = $"{playerNames.Count} connected players:";
+        foreach (KeyValuePair <NetworkConnection, string> entry in playerNames)
+            nameList += $"\n {entry.Value}";
+        NetworkServer.SendToAll(new LobbyListMessage { lobbyList = nameList });
     }
     
-    [Client]
     public override void OnClientDisconnect(NetworkConnection conn)
     {
         base.OnClientDisconnect(conn);
         Debug.Log($"Disconnected from server.");
 
-        lobby.loginScreen.SetActive(true);
-        lobby.connectingScreen.SetActive(false);
+        LoginScreen.SetActive(true);
+        ConnectingScreen.SetActive(false);
+        StartScreen.SetActive(false);
+    }
+
+
+    [Server]
+    public void StartGame(StartMessage startMessage)
+    {
+        if (allReady)
+        {
+            NetworkServer.SendToAll(new ClientStartMessage{});
+            StartCoroutine(GameStart());
+        }
+    }
+
+    public void ClientStartGame(ClientStartMessage clientStartMessage)
+    {
+        Lobby.SetActive(false);
     }
 
 
@@ -216,7 +399,6 @@ public class MyNetworkManager : NetworkManager
 
         // Wait a frame for gameManager's Start to finish.
         yield return null;
-
 
         // Spawn the player objects, set their playerIndexes, and get their playerIds.
         foreach (KeyValuePair<int, NetworkConnection> entry in playerConns)
@@ -241,6 +423,7 @@ public class MyNetworkManager : NetworkManager
             foreach (KeyValuePair<int, NetworkIdentity> idEntry in playerIds)
                 if (idEntry.Value.connectionToClient == nameEntry.Key)
                     gameManager.GetComponent<GameManager>().playerNames[idEntry.Key] = nameEntry.Value;
-
     }
+
+
 }

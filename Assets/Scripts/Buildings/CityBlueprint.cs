@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class CityBlueprint : MonoBehaviour
 {
+    [Range(0.0f, 10.0f)] public float heightAboveBoard;
+
     void Start()
     {
 
@@ -17,12 +19,12 @@ public class CityBlueprint : MonoBehaviour
         if (Physics.Raycast(ray, out hit, 50000.0f, (1 << 9)))
         {
             gameObject.GetComponent<MeshRenderer>().enabled = true;
-            transform.position = new Vector3(hit.rigidbody.position.x, 0.2f, hit.rigidbody.position.z);
+            transform.position = new Vector3(hit.rigidbody.position.x, heightAboveBoard, hit.rigidbody.position.z);
         }
         else if (Physics.Raycast(ray, out hit, 50000.0f, (1 << 8)))
         {
             gameObject.GetComponent<MeshRenderer>().enabled = true;
-            transform.position = new Vector3(hit.point.x, 0.2f, hit.point.z);
+            transform.position = new Vector3(hit.point.x, heightAboveBoard, hit.point.z);
         }
         else
         {

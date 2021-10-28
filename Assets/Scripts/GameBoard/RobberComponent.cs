@@ -39,12 +39,9 @@ public class RobberComponent : NetworkBehaviour
     private void Update()
     {       
         if (isServer) { return; }
+        if (gm.currentTurn != PlayerController.playerIndex) { return; }
+        if (gm.GameState != GameManager.State.ROBBER) { return; }
         
-        if (gm.GameState != GameManager.State.ROBBER || gm.currentTurn != PlayerController.playerIndex) 
-        {
-            return;
-        }            
-
         Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hitInfo;
         Vector3 currentPosition;
@@ -113,7 +110,7 @@ public class RobberComponent : NetworkBehaviour
             if (location != startHex)
             {
                 startHex = location;
-                gm.CmdRequestEndRobber(location.id);
+                gm.CmdRequestEndRobber(PlayerController.playerIndex, location.id);
             }
 
             CmdFollowRobber(transform.position);

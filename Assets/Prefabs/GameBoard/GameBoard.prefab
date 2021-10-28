@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 793211645052042600}
   - component: {fileID: 793211645052042601}
   - component: {fileID: 793211645052042602}
+  - component: {fileID: 6683847375968514309}
   m_Layer: 0
   m_Name: GameBoard
   m_TagString: GameBoard
@@ -78,6 +79,17 @@ MonoBehaviour:
   HillMat: {fileID: 2100000, guid: 84438a39896725b2db94514503aace72, type: 2}
   MountainMat: {fileID: 2100000, guid: b141028047583811e9d545075865bff1, type: 2}
   boardSize: 2
+--- !u!210 &6683847375968514309
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 793211645052042603}
+  m_Enabled: 1
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: -5
 --- !u!1 &1036720631166939378
 GameObject:
   m_ObjectHideFlags: 0

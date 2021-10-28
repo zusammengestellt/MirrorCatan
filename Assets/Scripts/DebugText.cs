@@ -62,7 +62,7 @@ public class DebugText : MonoBehaviour
 
         string newText = $"Current turn: {gm.playerNames[gm.currentTurn]} / Player {gm.currentTurn}\n";
 
-        newText += $"\nGame State {gm.GameState.ToString()}\n";
+        newText += $"\nGame State {gm.GameState.ToString()} / Setup: {gm.setup}\n";
         
         newText += "\nplayerResources\n";
 
@@ -85,6 +85,13 @@ public class DebugText : MonoBehaviour
                 newText += $"{res.ToString()} ";
             newText += "\n";
         }
+
+        newText += "\nstillToDiscard\n";
+
+        for (int i = 1; i <= GameManager.playerCount; i++)
+        {
+            newText += $"{i}: {gm.stillToDiscard[i]}\n";
+        }       
 
         newText += "\nplayerOfferingTrade\n";
 
@@ -149,5 +156,18 @@ public class DebugText : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.G))
             gm.CmdRemoveResource(selectedPlayer, Resource.Ore);
 
+    }
+}
+
+public class Utility
+{
+    public static void playerIdsAudit(GameManager gm)
+    {
+        Debug.Log("playerIds audit");
+        Debug.Log(gm.playerIds);
+        Debug.Log(gm.playerIds.Count);
+
+        for (int i = 1; i <= GameManager.playerCount; i++)
+            Debug.Log($"{i}: {gm.playerIds[i]}");
     }
 }

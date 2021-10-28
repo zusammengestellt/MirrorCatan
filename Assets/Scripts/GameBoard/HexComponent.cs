@@ -31,12 +31,12 @@ public class HexComponent : NetworkBehaviour
 
     public override void OnStartClient()
     {
-        HexSelector.SetActive(false);
+        HexSelector.SetActive(false);    
     }
 
     void Update()
     {
- 
+        
     }
 
     public void ChangeResource(Resource res)

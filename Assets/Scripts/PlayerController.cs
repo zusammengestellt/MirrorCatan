@@ -14,7 +14,7 @@ public class PlayerController : NetworkBehaviour
 
     private GameManager gm;
     private GameBoard gb;
-    
+
     [SyncVar] public int syncPlayerIndex;
     public static int playerIndex;
 
@@ -30,13 +30,12 @@ public class PlayerController : NetworkBehaviour
 
         if (isLocalPlayer)
         {
-            GameObject.Find("Lobby").SetActive(false);
+            //GameObject.Find("Lobby").SetActive(false);
             instance = this;
             playerIndex = syncPlayerIndex;
         }
-        
+
     }
-    
 
     private void Update()
     {
@@ -52,10 +51,8 @@ public class PlayerController : NetworkBehaviour
         {
             Hex h = GameBoard.HexUnderMouse().GetComponent<HexComponent>().hex;
         }
-
-
-
     }
+
 
     [Client]
     public bool CanAffordRoad()
@@ -177,14 +174,6 @@ public class PlayerController : NetworkBehaviour
         gm.RequestNextTurn(requestor);
     }
 
-    // Three calls to roll die. Only active player should
-    // call back, otherwise resources generate X times.
-    [Command]
-    public void CmdFinishRoll(int senderIndex, int result)
-    {
-        if (senderIndex == gm.currentTurn)
-            gm.RequestFinishRoll(result);
-    }
 
 
 
