@@ -46,6 +46,11 @@ public class DieRollZone : MonoBehaviour
         pc = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
     }
 
+    private void Update()
+    {
+
+    }
+
     private void OnEnable()
     {
         GameManager.onRollDie += StartRollDie;
@@ -89,10 +94,6 @@ public class DieRollZone : MonoBehaviour
                 //Debug.Log($"{GameBoard.hexes[i].Q},{GameBoard.hexes[i].R}");
         }
 
-
-        // Three calls to roll die. Only active player should
-        // call back, otherwise resources generate X times.
-        gm.CmdFinishRoll(PlayerController.playerIndex, result);
         yield return null;
     }
 

@@ -63,7 +63,7 @@ public class CommandLabel : MonoBehaviour
         }
         else
         {
-            label.color = Color.black;
+            label.color = Color.white;
             label.text = $"{gm.playerNames[gm.currentTurn]} is placing...";
         }
     }
@@ -88,7 +88,7 @@ public class CommandLabel : MonoBehaviour
         }
         else
         {
-            label.color = Color.black;
+            label.color = Color.white;
             label.text = "Waiting on other players to discard...";
         }
     }
@@ -104,7 +104,7 @@ public class CommandLabel : MonoBehaviour
         }
         else
         {
-            label.color = Color.black;
+            label.color = Color.white;
             label.text = $"{gm.playerNames[gm.currentTurn]} is moving the robber...";
         }
     }
@@ -120,7 +120,7 @@ public class CommandLabel : MonoBehaviour
         }
         else
         {
-            label.color = Color.black;
+            label.color = Color.white;
             label.text = $"{gm.playerNames[gm.currentTurn]} is stealing...";
         }
     }
@@ -136,7 +136,7 @@ public class CommandLabel : MonoBehaviour
         }
         else
         {
-            label.color = Color.black;
+            label.color = Color.white;
             label.text = $"Waiting for offers...";
         }
     }

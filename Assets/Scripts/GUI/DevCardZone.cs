@@ -54,12 +54,9 @@ public class DevCardZone : MonoBehaviour
         }
         devCardsSorted = devCardsFiltered;
 
-        // Dynamically adjust spacing between cards and zone background width.
-        float spacing = (devCardZoneMax - (devCardsSorted.Count * cardWidth)) / (devCardsSorted.Count + 1);
+        // Dynamically adjust spacing between cards.
+        float spacing = Mathf.Min(10, ((290 - (devCardsSorted.Count * cardWidth)) / (devCardsSorted.Count - 1) - (devCardsSorted.Count * 0.8f))  );
         this.GetComponent<GridLayoutGroup>().spacing = new Vector2(Mathf.Min(defaultCardSpacing, spacing), 0);
-        this.GetComponent<RectTransform>().sizeDelta = new Vector2(Mathf.Min(devCardZoneMax, devCardsSorted.Count * cardWidth + (devCardsSorted.Count) * spacing + 10), this.GetComponent<RectTransform>().sizeDelta.y);
-        if (this.GetComponent<RectTransform>().sizeDelta.x < devCardZoneMax)
-            this.GetComponent<RectTransform>().sizeDelta = new Vector2(devCardZoneMax, this.GetComponent<RectTransform>().sizeDelta.y);
 
         // Instantiate the cards.
         foreach (Dev dev in devCardsSorted)

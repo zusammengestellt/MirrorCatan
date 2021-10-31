@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,6 +23,7 @@ public class DevCard : MonoBehaviour
 
     private Vector2 startPosition;
 
+    public static event Action<int, Dev> onPlayDevCard;
 
     private void Start()
     {
@@ -53,6 +55,9 @@ public class DevCard : MonoBehaviour
         
         if (gm.currentTurn == PlayerController.playerIndex && gm.GameState == GameManager.State.IDLE)
         {
+            onPlayDevCard?.Invoke(PlayerController.playerIndex, dev);
+            /*
+
             // Play knight card.
             if (dev == Dev.Knight)
             {
@@ -61,8 +66,29 @@ public class DevCard : MonoBehaviour
                 gm.CmdAddDevCard(PlayerController.playerIndex, Dev.KnightRevealed);
                 gm.CmdPlayKnight(PlayerController.playerIndex);
             }
-        }
-           
+            */
+
+        }   
+    }
+
+    public GameObject tooltipCanvas;
+    public GameObject devCard;
+    public GameObject shownCard;
+
+    private float cardWidth = 360f;
+    private float cardHeight = 520f;
+
+    // Set in inspector for MouseEnter
+    public void TooltipOnEnter()
+    {
+        shownCard = Instantiate(devCard, new Vector3(Screen.width / 2, Screen.height / 2, 0f), Quaternion.identity, gm.tooltipCanvas.transform);
+        shownCard.GetComponent<RectTransform>().sizeDelta = new Vector2(cardWidth, cardHeight);
     }
     
+    // Set in inspector for MouseEnter
+    public void TooltipOnExit()
+    {
+        if (shownCard != null)
+            Destroy(shownCard);
+    }
 }

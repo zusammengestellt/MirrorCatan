@@ -59,8 +59,8 @@ public class AudioManager : MonoBehaviour
     public AudioClip playKnight, robber, gameWon;
     public AudioClip build1, build2, build3;
     public AudioClip cards1, cards2, cards3, yourTurn;
-
     public AudioClip longestRoad, largestArmy, harbormaster;
+    public AudioClip coinSingle1, coinSingle2, coinSingle3;
 
 
     private AudioClip SelectAudioClip(int clipIndex)
@@ -94,6 +94,10 @@ public class AudioManager : MonoBehaviour
             case 30: return longestRoad; break;
             case 31: return largestArmy; break;
             case 32: return harbormaster; break;
+
+            case 33: return coinSingle1; break;
+            case 34: return coinSingle2; break;
+            case 35: return coinSingle3; break;
 
         }
 

@@ -14,7 +14,7 @@ public class PublicVP : MonoBehaviour
         gm = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
         ez = GetComponentInParent<EnemyZone>();
 
-        label = GetComponent<Text>();
+        label = GetComponentInChildren<Text>();
     }
 
     void Update()
@@ -22,8 +22,8 @@ public class PublicVP : MonoBehaviour
         gm.CmdRecalculateVP();
 
         if (gm.GameState != GameManager.State.WINNER)
-            label.text = $"VP: {gm.playerPublicVP[ez.forEnemyIndex]}+";
+            label.text = $"{gm.playerPublicVP[ez.forEnemyIndex]}+";
         else
-            label.text = $"VP: {gm.playerPrivateVP[ez.forEnemyIndex]}";
+            label.text = $"{gm.playerPrivateVP[ez.forEnemyIndex]}";
     }
 }

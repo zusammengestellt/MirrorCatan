@@ -24,6 +24,6 @@ public class ArmyCount : MonoBehaviour
                 armyCount++;
         }
 
-        label.text = $"Army: {armyCount}";
+        label.text = armyCount.ToString();
     }
 }

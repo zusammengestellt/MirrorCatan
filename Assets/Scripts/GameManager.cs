@@ -18,6 +18,7 @@ public enum Dev { None, Knight, KnightRevealed, Roads, Plenty, Monopoly, VP, VPR
 public class GameManager : NetworkBehaviour
 {
     public GameObject pointerPrefab;
+    public GameObject tooltipCanvas;
 
     [Header("Game Settings")]
     public int VPtoWin = 11;
@@ -34,10 +35,12 @@ public class GameManager : NetworkBehaviour
     public static int playerCount;
 
     [SyncVar] public int currentTurn = 0;
+    public int serverTotalTurns = 0;
 
     public SyncDictionary<int, NetworkIdentity> playerIds = new SyncDictionary<int, NetworkIdentity>();
     public SyncDictionary<int, string> playerNames = new SyncDictionary<int, string>();
     public readonly SyncDictionary<int, List<Resource>> playerResources = new SyncDictionary<int, List<Resource>>();
+    public readonly Dictionary<int, int> playerCoins = new Dictionary<int, int>();
     public readonly SyncDictionary<int, List<Dev>> playerDevCards = new SyncDictionary<int, List<Dev>>();
     public SyncDictionary<int, int> playerPublicVP = new SyncDictionary<int, int>();
     public SyncDictionary<int, int> playerPrivateVP = new SyncDictionary<int, int>();
@@ -66,36 +69,73 @@ public class GameManager : NetworkBehaviour
 
     private void Awake()
     {        
-        GameState = State.NONE;
+        GameState = State.IDLE;
     }
 
     private void Update()
     {
+        if (isClient) { CmdStateDesyncCheck(GameState, false); }
+
         Cursor.visible = (GameState != State.BUILD);
+    }
+
+    private void LateUpdate()
+    {
+        if (isClient) { CmdStateDesyncCheck(GameState, true); }
     }
 
     //------------------------------------------------------------------
 
-    private State StateChangeError(State fromState, State toState)
+
+    [Command(requiresAuthority = false)]
+    public void CmdStateDesyncCheck(State clientState, bool isLateUpdate, NetworkConnectionToClient sender = null)
+    {
+        if (clientState != GameState && GameState != State.NONE)
+        {
+            if (!isLateUpdate)
+                Debug.LogWarning($"[{playerNames[playerIds.FirstOrDefault(x => x.Value == sender.identity).Key]}] State Desync Error: Client was {clientState} on call whereas server is {GameState}");
+            
+            // hiding late update messages since they clutter the log
+            //else
+               // Debug.LogWarning($"[{playerNames[playerIds.FirstOrDefault(x => x.Value == sender.identity).Key]}] LateUpdate State Desync Error: Client was {clientState} on call whereas server is {GameState}");
+
+            //RpcCorrectStateDesync(sender, GameState);
+            RpcCorrectStateDesync(GameState);
+        }
+    }
+
+    //[TargetRpc]
+    [ClientRpc]
+    //private void RpcCorrectStateDesync(NetworkConnection target, State serverState)
+    private void RpcCorrectStateDesync(State serverState)
+    {
+        GameState = serverState;
+    }
+
+    private State StateChangeError(State fromState, State toState, string extraMessage = "")
     {
         Debug.LogWarning($"State change error from {fromState} to {toState}! At time of call it was {GameState}");
+        
+        if (extraMessage != "")
+            Debug.LogWarning(extraMessage);
         return State.IDLE;
     }
 
     //------------------------------------------------------------------
 
-    private void StateNoneToIdle() => GameState = (GameState == State.NONE) ? State.IDLE : StateChangeError(State.NONE, State.IDLE);
-    private void StateIdleToRoll() => GameState = (GameState == State.IDLE) ? State.ROLL : StateChangeError(State.IDLE, State.ROLL);
-    private void StateRollToIdle() => GameState = (GameState == State.ROLL) ? State.IDLE : StateChangeError(State.ROLL, State.IDLE);
-    private void StateRollToDiscard() => GameState = (GameState == State.ROLL) ? State.DISCARD : StateChangeError(State.ROLL, State.DISCARD);
-    private void StateRollToRobber() => GameState = (GameState == State.ROLL) ? State.ROBBER : StateChangeError(State.ROLL, State.DISCARD);
-    private void StateDiscardToRobber() => GameState = (GameState == State.DISCARD) ? State.ROBBER : StateChangeError(State.DISCARD, State.ROBBER);
-    private void StateRobberToEndRobber() => GameState = (GameState == State.ROBBER) ? State.ENDROBBER : StateChangeError(State.ROBBER, State.ENDROBBER);
-    private void StateEndRobberToIdle() => GameState = (GameState == State.ENDROBBER) ? State.IDLE : StateChangeError(State.ENDROBBER, State.IDLE);
-    private void StateEndRobberToSteal() => GameState = (GameState == State.ENDROBBER) ? State.STEAL : StateChangeError(State.ENDROBBER, State.STEAL);
-    private void StateStealToIdle() => GameState = (GameState == State.STEAL) ? State.IDLE : StateChangeError(State.STEAL, State.IDLE);
-    private void StateIdleToRobber() => GameState = (GameState == State.IDLE) ? State.ROBBER : StateChangeError(State.IDLE, State.ROBBER);
-    private void StateBuildToIdle() => GameState = (GameState == State.BUILD) ? State.IDLE : StateChangeError(State.BUILD, State.IDLE);
+    private void StateNoneToIdle(string extraMessage = "") => GameState = (GameState == State.NONE) ? State.IDLE : StateChangeError(State.NONE, State.IDLE, extraMessage);
+    private void StateIdleToRoll(string extraMessage = "") => GameState = (GameState == State.IDLE) ? State.ROLL : StateChangeError(State.IDLE, State.ROLL, extraMessage);
+    private void StateRollToIdle(string extraMessage = "") => GameState = (GameState == State.ROLL) ? State.IDLE : StateChangeError(State.ROLL, State.IDLE, extraMessage);
+    private void StateRollToDiscard(string extraMessage = "") => GameState = (GameState == State.ROLL) ? State.DISCARD : StateChangeError(State.ROLL, State.DISCARD, extraMessage);
+    private void StateRollToRobber(string extraMessage = "") => GameState = (GameState == State.ROLL) ? State.ROBBER : StateChangeError(State.ROLL, State.DISCARD, extraMessage);
+    private void StateDiscardToRobber(string extraMessage = "") => GameState = (GameState == State.DISCARD) ? State.ROBBER : StateChangeError(State.DISCARD, State.ROBBER, extraMessage);
+    private void StateRobberToEndRobber(string extraMessage = "") => GameState = (GameState == State.ROBBER) ? State.ENDROBBER : StateChangeError(State.ROBBER, State.ENDROBBER, extraMessage);
+    private void StateEndRobberToIdle(string extraMessage = "") => GameState = (GameState == State.ENDROBBER) ? State.IDLE : StateChangeError(State.ENDROBBER, State.IDLE, extraMessage);
+    private void StateEndRobberToSteal(string extraMessage = "") => GameState = (GameState == State.ENDROBBER) ? State.STEAL : StateChangeError(State.ENDROBBER, State.STEAL, extraMessage);
+    private void StateStealToIdle(string extraMessage = "") => GameState = (GameState == State.STEAL) ? State.IDLE : StateChangeError(State.STEAL, State.IDLE, extraMessage);
+    private void StateIdleToBuild(string extraMessage = "") => GameState = (GameState == State.IDLE) ? State.BUILD : StateChangeError(State.IDLE, State.BUILD, extraMessage);
+    private void StateIdleToRobber(string extraMessage = "") => GameState = (GameState == State.IDLE) ? State.ROBBER : StateChangeError(State.IDLE, State.ROBBER, extraMessage);
+    private void StateBuildToIdle(string extraMessage = "") => GameState = (GameState == State.BUILD) ? State.IDLE : StateChangeError(State.BUILD, State.IDLE, extraMessage);
 
     [Command (requiresAuthority = false)]
     public void CmdPlayAudio(int clipIndex)
@@ -146,6 +186,8 @@ public class GameManager : NetworkBehaviour
         {
             playerSelectedCards[index] = new List<Resource>();
             playerOfferingTrade[index] = false;
+
+            playerCoins[index] = 3;
         }   
 
         if (isServer)
@@ -217,14 +259,19 @@ public class GameManager : NetworkBehaviour
     {
         setup = true;
 
+        StateNoneToIdle("Starting setup, NONE -> IDLE");
+
         // First set of starter buildings.
         for (int i = 1; i <= playerCount; i++)
         {
             currentTurn = i;
             RpcLocalAudio(playerIds[i].connectionToClient, 19);
 
+            StateIdleToBuild("Starter blueprint IDLE -> BUILD");
             RpcGiveStarterBlueprint(playerIds[i].connectionToClient, "Village");
             yield return new WaitUntil(() => GameBoard.GetNumVillages() >= i);
+            
+            StateIdleToBuild("Starter blueprint IDLE -> BUILD");
             RpcGiveStarterBlueprint(playerIds[i].connectionToClient, "Road");
             yield return new WaitUntil(() => GameBoard.GetNumRoads() >= i);
         }
@@ -235,8 +282,11 @@ public class GameManager : NetworkBehaviour
             currentTurn = i;
             RpcLocalAudio(playerIds[i].connectionToClient, 19);
 
+            StateIdleToBuild("Starter blueprint IDLE -> BUILD");
             RpcGiveStarterBlueprint(playerIds[i].connectionToClient, "Village");
             yield return new WaitUntil(() => GameBoard.GetNumVillages() >= playerCount+j);
+            
+            StateIdleToBuild("Starter blueprint IDLE -> BUILD");
             RpcGiveStarterBlueprint(playerIds[i].connectionToClient, "Road");
             yield return new WaitUntil(() => GameBoard.GetNumRoads() >= playerCount+j);
             j++;
@@ -258,14 +308,13 @@ public class GameManager : NetworkBehaviour
         yield return null;
 
         currentTurn = 0;
-        StateNoneToIdle();
-        RequestNextTurn(currentTurn);
+        RequestNextTurn();
     }
 
     [TargetRpc]
     private void RpcGiveStarterBlueprint(NetworkConnection target, string blueprint)
     {    
-        StartCoroutine(Build(blueprint, true));
+        StartCoroutine(Build(blueprint, true, false));
     }
 
     // Game state events
@@ -273,13 +322,13 @@ public class GameManager : NetworkBehaviour
     public static event Action<int, int> onRollDie;
 
     [Command(requiresAuthority = false)]
-    public void CmdRequestNextTurn(int requestor)
+    public void CmdRequestNextTurn()
     {
-        RequestNextTurn(requestor);
+        RequestNextTurn();
     }
 
     [Server]
-    public void RequestNextTurn(int requestor)
+    public void RequestNextTurn()
     {
         Debug.Log(setup);
         for (int i = 1; i <= playerCount; i++)
@@ -290,10 +339,15 @@ public class GameManager : NetworkBehaviour
 
         StateIdleToRoll();
 
-        int nextTurn = requestor + 1;
-        if (nextTurn > playerCount)
-            nextTurn = 1;
-        currentTurn = nextTurn;
+        Debug.Log($"turn before advance: {currentTurn}");
+        currentTurn = currentTurn + 1;
+        Debug.Log($"turn after +1: {currentTurn}");
+        if (currentTurn > playerCount)
+            currentTurn = 1;
+        Debug.Log($"turn after playerCount check: {currentTurn}");
+
+        serverTotalTurns += 1;
+        Debug.Log($"-----TURN {serverTotalTurns}-----");
 
         RpcAdvanceNextTurn(currentTurn);
         RollDie();
@@ -333,14 +387,6 @@ public class GameManager : NetworkBehaviour
         onRollDie?.Invoke(roll1, roll2);
     }
 
-    ////// TO DELETE??
-    [Command(requiresAuthority = false)]
-    public void CmdFinishRoll(int senderIndex, int result)
-    {
-     /*   if (senderIndex == currentTurn)
-            RequestFinishRoll(result);*/
-    }
-
     [Server]
     public void FinishRoll(int result)
     {
@@ -350,27 +396,126 @@ public class GameManager : NetworkBehaviour
             RobberDiscardCheck();
     }
 
+    public static event Action<int, List<Resource>, bool> onIncomeAnimation;
+
     [Server]
     private void DistributeResources(int rollResult)
     {
+        Hex h = null;
+        Dictionary<int, List<Resource>> resIncome = new Dictionary<int, List<Resource>>();
+        Dictionary<int, bool> coinIncome = new Dictionary<int, bool>();
+
+        for (int i = 1; i <= playerCount; i++)
+        {
+            resIncome[i] = new List<Resource>();
+            coinIncome[i] = false;
+        }
+
         for (int i = 0; i < GameBoard.numHexes; i++)
         {
-            if (GameBoard.hexes[i].roll == rollResult && GameBoard.hexes[i].robbed) { Debug.Log($"Hex {i} is robbed!"); }
-            if (GameBoard.hexes[i].roll == rollResult && !GameBoard.hexes[i].robbed)
+            h = GameBoard.hexes[i];
+
+            // Start hex selector animation.
+            if (h.roll == rollResult)
+                RpcFlickerHexSelector(h.id);
+
+            if (h.roll == rollResult && h.robbed) { Debug.Log($"Hex {i} is robbed!"); }
+    
+
+            if (h.roll == rollResult && !h.robbed)
             {
-                foreach (Corner c in GameBoard.hexes[i].corners)
+                // Distribute resources.
+                foreach (Corner c in h.corners)
                 {
                     if (c.owned)
                     {
                         RpcLocalAudio(playerIds[c.playerOwner].connectionToClient, UnityEngine.Random.Range(16,19));
-                        AddResource(c.playerOwner, GameBoard.hexes[i].resource);
+                        
+                        AddResource(c.playerOwner, h.resource);
+                        
+                        // Add 2nd resource for cities
+                        if (c.devLevel == 2)
+                            AddResource(c.playerOwner, h.resource);
+
+                        // Also add to a batch dictionary for income animations, etc.
+                        resIncome[c.playerOwner].Add(h.resource);
+
+                        // 2nd for cities
+                        if (c.devLevel == 2)
+                            resIncome[c.playerOwner].Add(h.resource);
                     }
                 }
             }
         }
-         // Advance game state.
+
+        // Check if anyone earned coins.
+        for (int i = 1; i <= playerCount; i++)
+        {
+            if (resIncome[i].Count == 0)
+            {
+                bool lowestVP = true;
+
+                for (int j = 1; j <= playerCount; j++)
+                    if (playerPrivateVP[i] > playerPrivateVP[j])
+                        lowestVP = false;
+                
+                if (lowestVP)
+                {
+                    playerCoins[i] += 1;
+
+                    Debug.Log($"Server: Added a coin for {i}. {playerNames[i]} now has {playerCoins[i]} coins.");
+                    RpcAddCoin(i);
+                    coinIncome[i] = true;
+                }
+            }
+        }
+
+
+        // Start income animations.
+        for (int i = 1; i <= playerCount; i++)
+        {
+            RpcIncomeAnimation(i, resIncome[i], coinIncome[i]);
+        }
+        
+
+        // Advance game state.
         RpcLocalAudio(playerIds[currentTurn].connectionToClient, 19);
         StateRollToIdle();
+    }
+
+    [ClientRpc]
+    private void RpcFlickerHexSelector(int hexId)
+    {
+        GameBoard.hexes[hexId].instance.GetComponent<HexComponent>().FlickerHexSelector();
+    }
+
+    [ClientRpc]
+    private void RpcAddCoin(int playerIndex)
+    {
+        playerCoins[playerIndex] += 1;
+
+        if (playerIndex == PlayerController.playerIndex)
+            PlayLocalAudio(UnityEngine.Random.Range(33,36));
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdRemoveCoins(int requestor, int numCoins)
+    {
+        playerCoins[requestor] -= 5;
+        RpcRemoveCoins(requestor, numCoins);
+    }
+
+    [ClientRpc]
+    private void RpcRemoveCoins(int playerIndex, int numCoins)
+    {
+        playerCoins[playerIndex] -= 5;
+    }
+    
+
+    [ClientRpc]
+    private void RpcIncomeAnimation(int targetPlayer, List<Resource> resIncome, bool coinIncome)
+    {
+        onIncomeAnimation?.Invoke(targetPlayer, resIncome, coinIncome);
     }
 
 
@@ -422,7 +567,6 @@ public class GameManager : NetworkBehaviour
     [Server]
     public bool DiscardAllReady()
     {
-        Debug.Log("I'm cycling--");
         for (int i = 1; i <= playerCount; i++)
             if (stillToDiscard[i] > 0)
                 return false;
@@ -446,13 +590,14 @@ public class GameManager : NetworkBehaviour
     {
         RpcPlayAudio(10);
 
+        if (GameState != State.IDLE) { Debug.LogWarning("CmdPlayKnight was not idle when requested, returning"); return; }
+
         // Before moving robber, check for LargestArmy.
         int myKnightCount = 0;
         int previousLargestArmyOwner = largestArmyOwner;
 
         foreach (Dev dev in playerDevCards[knightPlayer])
         {
-            Debug.Log(dev);
             if (dev == Dev.KnightRevealed)
                 myKnightCount += 1;
         }
@@ -540,7 +685,7 @@ public class GameManager : NetworkBehaviour
         if (stealTargets.Count == 0)
         {
             Debug.Log("no steal targets, on to IDLE");
-            StateEndRobberToIdle();
+            StateEndRobberToIdle($"{GameState} / stealTargets.Count: {stealTargets.Count}");
         }
         else
         {
@@ -587,29 +732,90 @@ public class GameManager : NetworkBehaviour
         }
         
         // Advance game state.
-        StateStealToIdle();
+        StateStealToIdle($"State was {GameState}, toStealFrom: {toStealFrom.Count}, targetPlayer {targetPlayer} thiefPlayer {thiefPlayer}");
     }
     
+    [Command(requiresAuthority = false)]
+    public void CmdProcessMonopoly(int cardPlayer, Resource res)
+    {
+        Dictionary<int, int> toStealCount = new Dictionary<int, int>();
+        List<Resource> resIncome = new List<Resource>();
+
+        for (int i = 1; i <= playerCount; i++)
+        {
+            toStealCount[i] = 0;
+
+            if (i != cardPlayer)
+                foreach (Resource match in playerResources[i].Where(r => r == res))
+                    toStealCount[i] += 1;
+        }
+
+        for (int i = 1; i <= playerCount; i++)
+        {
+            for (int j = 0; j < toStealCount[i]; j++)
+            {
+                RemoveResource(i, res);
+                AddResource(cardPlayer, res);
+                resIncome.Add(res);
+            }
+        }
+
+        if (resIncome.Count > 0)
+            RpcIncomeAnimation(cardPlayer, resIncome, false);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdProcessYearOfPlenty(int playerIndex, Resource res)
+    {
+        List<Resource> resIncome = new List<Resource>();
+        resIncome.Add(res);
+        resIncome.Add(res);
+
+        AddResource(playerIndex, res, 2);
+
+        RpcIncomeAnimation(playerIndex, resIncome, false);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdProcessRoadBuilding(int playerIndex)
+    {   
+        StartCoroutine(RoadBuilding(playerIndex));
+    }
+
+    private IEnumerator RoadBuilding(int playerIndex)
+    {
+        int startRoadCount = GameBoard.GetNumRoads();
+
+        StateIdleToBuild("Starter blueprint IDLE -> BUILD");
+        RpcGiveBlueprint(playerIds[playerIndex].connectionToClient, "Road", false, true);
+        yield return new WaitUntil(() => GameBoard.GetNumRoads() >= startRoadCount + 1);
+
+        StateIdleToBuild("Starter blueprint IDLE -> BUILD");
+        RpcGiveBlueprint(playerIds[playerIndex].connectionToClient, "Road", false, true);
+        yield return new WaitUntil(() => GameBoard.GetNumRoads() >= startRoadCount + 2);
+    }
 
     [TargetRpc]
-    private void RpcGiveBlueprint(NetworkConnection target, string blueprint)
+    private void RpcGiveBlueprint(NetworkConnection target, string blueprint, bool starter, bool free)
     {    
-        StartCoroutine(Build(blueprint, false));
+        StartCoroutine(Build(blueprint, starter, free));
     }
 
     [Command(requiresAuthority = false)]
     public void CmdRequestBuild(int builderIndex, string blueprint)
     {
+        StateIdleToBuild($"On CmdRequestBuild, state was {GameState} when {playerNames[builderIndex]} requested to build a {blueprint}");
+
         switch (blueprint)
         {
             case "Road":
-                RpcGiveBlueprint(playerIds[builderIndex].connectionToClient, "Road");
+                RpcGiveBlueprint(playerIds[builderIndex].connectionToClient, "Road", false, false);
                 break;
             case "Village":
-                RpcGiveBlueprint(playerIds[builderIndex].connectionToClient, "Village");
+                RpcGiveBlueprint(playerIds[builderIndex].connectionToClient, "Village", false, false);
                 break;
             case "City":
-                RpcGiveBlueprint(playerIds[builderIndex].connectionToClient, "City");
+                RpcGiveBlueprint(playerIds[builderIndex].connectionToClient, "City", false, false);
                 break;
         }
     }
@@ -638,9 +844,9 @@ public class GameManager : NetworkBehaviour
     public Material matTransparentYellow;
 
     [Client]
-    public IEnumerator Build(string selectedBlueprint, bool starter = false)
+    public IEnumerator Build(string selectedBlueprint, bool starter = false, bool free = false)
     {
-        GameState = State.BUILD;
+        //GameState = State.BUILD;
 
         GameObject blueprintPrefab = null;
 
@@ -662,6 +868,7 @@ public class GameManager : NetworkBehaviour
         GameObject blueprintObj = (GameObject)Instantiate(blueprintPrefab);
         blueprintObj.GetComponent<MeshRenderer>().material = GetPlayerMaterial(PlayerController.playerIndex, true);
 
+        yield return new WaitUntil(() => GameState == State.BUILD);
         while (GameState == State.BUILD)
         {
 
@@ -748,13 +955,15 @@ public class GameManager : NetworkBehaviour
                         // Build road if legal
                         if (legalPlacement || Input.GetKey(KeyCode.LeftShift))
                         {
+                            
+
                             Vector3 blueprintPos = blueprintObj.transform.position;
                             Quaternion blueprintRot = blueprintObj.transform.rotation;
 
-                            GameObject.Destroy(blueprintObj);
-                            StateBuildToIdle();
+                            //GameObject.Destroy(blueprintObj);
+                            //GameState = State.IDLE;
                             
-                            if (!starter)
+                            if (!starter || !free)
                             {
                                 CmdRemoveResource(PlayerController.playerIndex, Resource.Wood);
                                 CmdRemoveResource(PlayerController.playerIndex, Resource.Brick);
@@ -818,8 +1027,8 @@ public class GameManager : NetworkBehaviour
                             Vector3 blueprintPos = blueprintObj.transform.position;
                             Quaternion blueprintRot = blueprintObj.transform.rotation;
                             
-                            GameObject.Destroy(blueprintObj);
-                            StateBuildToIdle();
+                            //GameObject.Destroy(blueprintObj);
+                            //GameState = State.IDLE;
 
                             if (!starter)
                             {
@@ -866,8 +1075,8 @@ public class GameManager : NetworkBehaviour
                             Vector3 blueprintPos = blueprintObj.transform.position;
                             Quaternion blueprintRot = blueprintObj.transform.rotation;                
 
-                            GameObject.Destroy(blueprintObj);
-                            StateBuildToIdle();
+                            //GameObject.Destroy(blueprintObj);
+                            //GameState = State.IDLE;
 
                             CmdRemoveResource(PlayerController.playerIndex, Resource.Ore);
                             CmdRemoveResource(PlayerController.playerIndex, Resource.Ore);
@@ -884,21 +1093,30 @@ public class GameManager : NetworkBehaviour
             // On right-click, cancel build. Cancelling is disabled for starter placements.
             if (Input.GetMouseButtonDown(1))
             {
-                if (starter)
+                if (starter || free)
                     Debug.Log("Can't cancel a starter blueprint!");
                 else
                 {
                     Debug.Log("Cancelled blueprint");
                     
                     GameObject.Destroy(blueprintObj);
-                    StateBuildToIdle();
+                    CmdCanceledBlueprint();
                 }
             }
             yield return null;
         }
         yield return null;
+
+        if (blueprintObj != null)
+            Destroy(blueprintObj);
+        
     }
 
+    [Command(requiresAuthority = false)]
+    private void CmdCanceledBlueprint()
+    {
+        StateBuildToIdle();
+    }
 
     [Command(requiresAuthority = false)]
     private void CmdBuildRoad(int pathId, int builderIndex, Vector3 blueprintPos, Quaternion blueprintRot)
@@ -923,7 +1141,7 @@ public class GameManager : NetworkBehaviour
 
         RpcBuildRoad(pathId, builderIndex, blueprintPos, blueprintRot);
 
-        
+        StateBuildToIdle("CmdBuildRoad");
     }
     
 
@@ -957,6 +1175,8 @@ public class GameManager : NetworkBehaviour
         CheckHarbormaster();
 
         RpcBuildVillage(cornerId, builderIndex, blueprintPos, blueprintRot);
+
+        StateBuildToIdle("CmdBuildVillage");
     }
 
     [ClientRpc]
@@ -989,6 +1209,8 @@ public class GameManager : NetworkBehaviour
         CheckHarbormaster();
 
         RpcBuildCity(cornerId, builderIndex, blueprintPos, blueprintRot);
+
+        StateBuildToIdle("CmdBuildCity");
     }
 
     [ClientRpc]
@@ -1153,18 +1375,25 @@ public class GameManager : NetworkBehaviour
         Dev randomDev = Dev.None;
 
         // 2/3 chance for knight, 1/3 for progress, 1/3 for VP
-        if (randomDevCard >= 0 && randomDevCard < 15)
+        if (randomDevCard >= 0 && randomDevCard < 13)
         {
             randomDev = Dev.Knight;
         }
-        else if (randomDevCard >= 15 && randomDevCard < 20)
-        {
-            // RANDOM PROGRESS CARD
-            randomDev = Dev.Monopoly;
-        }
-        else
+        else if (randomDevCard >= 13 && randomDevCard < 18)
         {
             randomDev = Dev.VP;
+        }
+        else if (randomDevCard >= 18 && randomDevCard < 20)
+        {
+            randomDev = Dev.Monopoly;
+        }
+        else if (randomDevCard >= 20 && randomDevCard < 22)
+        {
+            randomDev = Dev.Roads;
+        }
+        else if (randomDevCard >= 22 && randomDevCard <= 24)
+        {
+            randomDev = Dev.Plenty;
         }
         AddDevCard(buyerIndex, randomDev);
     }
@@ -1206,6 +1435,8 @@ public class GameManager : NetworkBehaviour
     [Command(requiresAuthority = false)]
     public void CmdEnterTradeState(int requestor)
     {
+        if (GameState != State.IDLE) { Debug.LogWarning($"CmdEnterTradeState: Game state was not IDLE when requested by {playerNames[requestor]}, returning"); return; }
+        
         GameState = State.TRADE;
         RpcChangeSelectedCard(requestor, playerSelectedCards[requestor]);
     }

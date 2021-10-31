@@ -14,10 +14,10 @@ public class PlayerGUI : MonoBehaviour
     public GameObject handZone;
     public GameObject enemyZoneGrid;
     public GameObject enemyZonePrefab;
-    public GameObject dieRollZonePrefab;
     private Dictionary<int, GameObject> enemyZones;
     
     public GameObject buildingCosts;
+    public GameObject dieRollZonePrefab;
 
     private void Start()
     { 

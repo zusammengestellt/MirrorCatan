@@ -31,6 +31,7 @@ public class GameBoard : NetworkBehaviour
     [System.NonSerialized] public static GameObject[] cornerObjects;
     [System.NonSerialized] public static GameObject[] pathObjects;
     [System.NonSerialized] public static GameObject[] tokenObjects;
+    [System.NonSerialized] public static GameObject[] harborObjects;
 
     [System.NonSerialized] public static int numHexes;
     [System.NonSerialized] public static int numCorners;
@@ -260,29 +261,31 @@ public class GameBoard : NetworkBehaviour
 
         // Calculate harbor types
         List<Resource> harborTypes = new List<Resource>{ Resource.Wood, Resource.Brick, Resource.Wool, Resource.Grain, Resource.Ore };
-        int placedHarbors = 0;
 
+        // Add any's and randomize
+        for (int i = 0; i < harborPairs.Count - 5; i++)
+            harborTypes.Add(Resource.None);
+
+        // Shuffle resource distribution.
+        System.Random _random = new System.Random();
+        for (int i = 0; i < harborTypes.Count - 1; i++)
+        {
+            int j = _random.Next(i, harborTypes.Count);
+            Resource temp = harborTypes[i];
+            harborTypes[i] = harborTypes[j];
+            harborTypes[j] = temp;
+        }
+        
+        int index = 0;
         foreach ((Corner,Corner) coastline in harborPairs)
         {
             Corner cA = coastline.Item1;
             Corner cB = coastline.Item2;
 
-            if (harborTypes.Count > 0 && placedHarbors % 2 == 0)
-            {
-
-                var random = new System.Random();
-                int index = random.Next(harborTypes.Count);
-                Resource res = harborTypes[index];
-                
-                cA.harborType = cB.harborType = res;
-                harborTypes.Remove(res);
-            }
-            else
-            {
-                cA.harborType = cB.harborType = Resource.None;
-            }
-            placedHarbors++;
+            Resource res = harborTypes[index];
+            cA.harborType = cB.harborType = res;
             
+            index++;
         }
        
 
@@ -373,6 +376,7 @@ public class GameBoard : NetworkBehaviour
   
         // Generate and spawn cornerGameObjects.
         cornerObjects = new GameObject[corners.Length];
+        harborObjects = new GameObject[corners.Length];
         
         for (int i = 0; i < corners.Length; i++)
         {
@@ -384,11 +388,14 @@ public class GameBoard : NetworkBehaviour
             if (corners[i].isHarbor)
             {
                 GameObject harbor = Instantiate(HarborPrefab, corners[i].position, Quaternion.identity, this.transform);
-                
+                harborObjects[i] = harbor;
+
+                /*
                 if (corners[i].harborType != Resource.None)
                     harbor.GetComponentInChildren<Text>().text = $"{corners[i].harborType.ToString()}\n2:1";
                 else
                     harbor.GetComponentInChildren<Text>().text = "Any\n3:1";
+                */
             }
         }
 
@@ -573,13 +580,16 @@ public class GameBoard : NetworkBehaviour
             hexRolls[i] = hexObjects[i].GetComponent<HexComponent>().roll;
         }
 
-        // Harbor corners
+        // Harbors
         for (int i = 0; i < areHarbors.Length; i++)
         {
             corners[i].isHarbor = areHarbors[i];
 
             if (corners[i].isHarbor)
+            {
                 corners[i].harborType = harborTypes[i];
+                harborObjects[i].GetComponent<HarborComponent>().SetIcon(corners[i].harborType);
+            }
         }
 
         CmdUpdateServer(hexResources, hexRolls);

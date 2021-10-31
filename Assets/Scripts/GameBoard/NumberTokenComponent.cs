@@ -9,7 +9,7 @@ public class NumberTokenComponent : NetworkBehaviour
     public int roll;
 
     public GameObject camCon;
-    
+
     private Canvas canvas;
     private Text label;
     

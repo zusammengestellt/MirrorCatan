@@ -18,11 +18,20 @@ public class MyNetworkManager : NetworkManager
     internal static readonly Dictionary<NetworkConnection, bool> playerReady = new Dictionary<NetworkConnection, bool>();
     
     public GameObject gameManagerPrefab;
+    public GameObject gameManager;
     
     public AudioSource audioSourceIntro;
     public AudioSource audioSource;
     public AudioClip introClip;
     public AudioClip buttonClip;
+
+    public bool goFast;
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.C))
+            NetworkClient.Send(new StartMessage {});
+    }
 
     // Runs on both Server and Client (Networking is NOT initialized when this fires)
     public override void Awake()
@@ -56,6 +65,14 @@ public class MyNetworkManager : NetworkManager
         networkAddress = "localhost";
         #endif
 
+        /*
+        #if UNITY_EDITOR
+        if (goFast && ClonesManager.IsClone())
+        {
+            StartClient();
+        }
+        #endif*/
+        
         audioSource.clip = buttonClip;
         audioSourceIntro.clip = introClip;
         audioSourceIntro.Play();
@@ -84,17 +101,14 @@ public class MyNetworkManager : NetworkManager
     public struct ClientStartMessage : NetworkMessage { }
 
     
-    [Server]
     public override void OnStartServer()
     {
         base.OnStartServer();
         NetworkServer.RegisterHandler<CreatePlayerMessage>(OnCreatePlayer);
         NetworkServer.RegisterHandler<ReadyMessage>(ReadyChange);
         NetworkServer.RegisterHandler<StartMessage>(StartGame);
-        Debug.Log("OnStartServer");
     }
 
-    [Client]
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -118,8 +132,8 @@ public class MyNetworkManager : NetworkManager
 
     private IEnumerator LogoAnimated()
     {
-        float logoStep = 0.0025f;
-        float menuStep = 0.0005f;
+        float logoStep = 0.0005f;
+        float menuStep = 0.0002f;
 
         Background.SetActive(true);
         Logo.SetActive(true);
@@ -259,6 +273,13 @@ public class MyNetworkManager : NetworkManager
         UpdateLobbyList();
 
         Debug.Log($"{conn}: {playerNames[conn]} has joined.");
+
+        /*
+        #if UNITY_EDITOR
+        if (goFast && waitingConnections.Count == 2)
+            allReady = true;
+            StartCoroutine(GameStart());
+        #endif*/
     }
 
     ///////////////
@@ -268,7 +289,6 @@ public class MyNetworkManager : NetworkManager
     // Updates Start buttons interactable with value of allReady
     ///////////////
 
-    [Server]
     public void ReadyChange(NetworkConnection conn, ReadyMessage readyMessage)
     {
         playerReady[conn] = readyMessage.isReady;
@@ -282,19 +302,16 @@ public class MyNetworkManager : NetworkManager
         NetworkServer.SendToAll(new AllReadyMessage{ allReady = allReady });
     }
 
-    [Client]
     public void AllReadyChange(AllReadyMessage allReadyMessage)
     {
         StartButton.GetComponent<Button>().interactable = allReadyMessage.allReady;
     }
 
-    [Client]
     public void OnStartButton()
     {
         NetworkClient.Send(new StartMessage {});
     }
 
-    [Server]
     private void UpdateLobbyList()
     {
         string nameList = $"{playerNames.Count} connected players:";
@@ -352,6 +369,22 @@ public class MyNetworkManager : NetworkManager
         foreach (KeyValuePair <NetworkConnection, string> entry in playerNames)
             nameList += $"\n {entry.Value}";
         NetworkServer.SendToAll(new LobbyListMessage { lobbyList = nameList });
+
+        // Reset game on all disconnect
+        if (NetworkManager.singleton.numPlayers == 0)
+        {
+            GameObject.Destroy(gameManager);
+            GameObject.Destroy(GameObject.Find("GameBoard(Clone)"));
+            
+            GameObject.Destroy(GameObject.FindGameObjectWithTag("Robber"));
+            GameObject.Destroy(GameObject.FindGameObjectWithTag("Robber"));
+            GameObject.Destroy(GameObject.FindGameObjectWithTag("Robber"));
+            GameObject.Destroy(GameObject.FindGameObjectWithTag("Robber"));
+            
+            playerIds.Clear();
+            playerNames.Clear();
+            playerReady.Clear();
+        }
     }
     
     public override void OnClientDisconnect(NetworkConnection conn)
@@ -368,7 +401,7 @@ public class MyNetworkManager : NetworkManager
     [Server]
     public void StartGame(StartMessage startMessage)
     {
-        if (allReady)
+        if (allReady && GameObject.FindGameObjectWithTag("GameController") == null)
         {
             NetworkServer.SendToAll(new ClientStartMessage{});
             StartCoroutine(GameStart());
@@ -384,6 +417,12 @@ public class MyNetworkManager : NetworkManager
     [Server]
     IEnumerator GameStart()
     {
+        /*
+        #if UNITY_EDITOR
+        if (goFast) yield return new WaitForSeconds(3f);
+        #endif
+        */
+
         // Assign each player connection a number (1-based, will be the playerIndex).
         int i = 1;
         foreach (NetworkConnection conn in waitingConnections)
@@ -393,7 +432,7 @@ public class MyNetworkManager : NetworkManager
         }
 
         // Spawn the gameManager object.
-        GameObject gameManager = Instantiate(gameManagerPrefab);
+        gameManager = Instantiate(gameManagerPrefab);
         gameManager.GetComponent<GameManager>().syncPlayerCount = playerConns.Count;
         NetworkServer.Spawn(gameManager);        
 

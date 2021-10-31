@@ -21,5 +21,10 @@ public class SpecialCardZone : MonoBehaviour
         longestRoad.SetActive(gm.longestRoadOwner == PlayerController.playerIndex);
         largestArmy.SetActive(gm.largestArmyOwner == PlayerController.playerIndex);
         harbormaster.SetActive(gm.harbormasterOwner == PlayerController.playerIndex);
+
+        if (gm.longestRoadOwner == PlayerController.playerIndex && gm.largestArmyOwner == PlayerController.playerIndex && gm.harbormasterOwner == PlayerController.playerIndex)
+            GetComponent<GridLayoutGroup>().spacing = new Vector2(-50f, 0f);
+        else
+            GetComponent<GridLayoutGroup>().spacing = new Vector2(10f, 0f);
     }
 }

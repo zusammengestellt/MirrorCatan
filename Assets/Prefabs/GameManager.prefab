@@ -146,9 +146,9 @@ MonoBehaviour:
   dieRoll4: {fileID: 8300000, guid: 9e3af0c402f4d864e9903ef3f2a9ef0b, type: 3}
   dieRoll5: {fileID: 8300000, guid: 5f21b9f78b4ba174987a91a963e121d6, type: 3}
   buttonPress: {fileID: 8300000, guid: 2a160c052138d81419899224ffdb349e, type: 3}
-  coins1: {fileID: 8300000, guid: 51c7f726c8ee3844aa1033d4a7f07939, type: 3}
-  coins2: {fileID: 8300000, guid: 8f335d51e78352a4c91cc02b072041ac, type: 3}
-  coins3: {fileID: 8300000, guid: a9c7a2ec786734d4cb322675facd3de8, type: 3}
+  coins1: {fileID: 8300000, guid: 8f335d51e78352a4c91cc02b072041ac, type: 3}
+  coins2: {fileID: 8300000, guid: a9c7a2ec786734d4cb322675facd3de8, type: 3}
+  coins3: {fileID: 8300000, guid: fb57e4e6bfe62314cba1e823c2ac80ad, type: 3}
   playKnight: {fileID: 8300000, guid: 00dd1f0389899b149809dba1ca9db8e9, type: 3}
   robber: {fileID: 8300000, guid: 931f99b7a4c027142be22ad3320d39d0, type: 3}
   gameWon: {fileID: 8300000, guid: 116586f8b90f4194e9aa65814bba071d, type: 3}
@@ -162,6 +162,108 @@ MonoBehaviour:
   longestRoad: {fileID: 8300000, guid: da1d7647287843b4a88bd7c5fc325bcc, type: 3}
   largestArmy: {fileID: 8300000, guid: 34e85d693383be847abf0cc1fac873cd, type: 3}
   harbormaster: {fileID: 8300000, guid: cb6bca78ec2de584297008b7e79a4893, type: 3}
+  coinSingle1: {fileID: 8300000, guid: 51c7f726c8ee3844aa1033d4a7f07939, type: 3}
+  coinSingle2: {fileID: 8300000, guid: 1dcce577f8c7bad4e941294393e97571, type: 3}
+  coinSingle3: {fileID: 8300000, guid: d8f6f7194b55dab4c98fc329deffeb64, type: 3}
+--- !u!1 &6100012738935036317
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 67880469826106820}
+  - component: {fileID: 1418121907389011397}
+  - component: {fileID: 8331918981522895438}
+  - component: {fileID: 3836972583141257315}
+  m_Layer: 0
+  m_Name: TooltipCanvas
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &67880469826106820
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6100012738935036317}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_Children: []
+  m_Father: {fileID: 8014343728554814225}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0, y: 0}
+--- !u!223 &1418121907389011397
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6100012738935036317}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 0
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_AdditionalShaderChannelsFlag: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0
+--- !u!114 &8331918981522895438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6100012738935036317}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_UiScaleMode: 0
+  m_ReferencePixelsPerUnit: 100
+  m_ScaleFactor: 1
+  m_ReferenceResolution: {x: 800, y: 600}
+  m_ScreenMatchMode: 0
+  m_MatchWidthOrHeight: 0
+  m_PhysicalUnit: 3
+  m_FallbackScreenDPI: 96
+  m_DefaultSpriteDPI: 96
+  m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 0
+--- !u!114 &3836972583141257315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6100012738935036317}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_IgnoreReversedGraphics: 1
+  m_BlockingObjects: 0
+  m_BlockingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &8014343728554814224
 GameObject:
   m_ObjectHideFlags: 0
@@ -188,10 +290,11 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8014343728554814224}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 960, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 2553356672011591726}
+  - {fileID: 67880469826106820}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -227,6 +330,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0.1
   pointerPrefab: {fileID: 5096958837635387660, guid: 6dc31a3d58ea3da43b8c1d09fcb8028b, type: 3}
+  tooltipCanvas: {fileID: 6100012738935036317}
   VPtoWin: 11
   skipSetupPhase: 0
   fastRoll: 0
@@ -237,11 +341,11 @@ MonoBehaviour:
   startingOre: 0
   syncPlayerCount: 0
   currentTurn: 0
+  serverTotalTurns: 0
   largestArmyOwner: 0
   longestRoadOwner: 0
   harbormasterOwner: 0
   gameBoardPrefab: {fileID: 793211645052042603, guid: 16183d435d9d4fc029edfa95c81f2f0c, type: 3}
-  boardHud: {fileID: 0}
   GameState: 5
   setup: 0
   roadBlueprint: {fileID: 7811781260273031914, guid: ffc9ca247d7b8548d93fe26898b17897, type: 3}

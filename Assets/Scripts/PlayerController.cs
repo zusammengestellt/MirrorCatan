@@ -18,6 +18,8 @@ public class PlayerController : NetworkBehaviour
     [SyncVar] public int syncPlayerIndex;
     public static int playerIndex;
 
+    public GameObject DevCardMenu;
+
     void Start()
     {
 
@@ -35,6 +37,17 @@ public class PlayerController : NetworkBehaviour
             playerIndex = syncPlayerIndex;
         }
 
+    }
+
+    void OnEnable()
+    {
+        DevCard.onPlayDevCard += PlayDevCard;
+    }
+
+    private void PlayDevCard(int devPlayer, Dev devCardToPlay)
+    {
+        if (devPlayer == playerIndex)
+            DevCardMenu.GetComponent<DevCardMenu>().EnableDevMenu(devCardToPlay);
     }
 
     private void Update()
@@ -169,9 +182,9 @@ public class PlayerController : NetworkBehaviour
     
 
     [Command]
-    public void CmdRequestNextTurn(int requestor)
+    public void CmdRequestNextTurn()
     {
-        gm.RequestNextTurn(requestor);
+        gm.RequestNextTurn();
     }
 
 

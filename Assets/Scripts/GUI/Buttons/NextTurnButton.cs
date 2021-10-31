@@ -29,14 +29,14 @@ public class NextTurnButton : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                pc.CmdRequestNextTurn(PlayerController.playerIndex);
+                pc.CmdRequestNextTurn();
             }
         }
     }
 
     public void OnClick()
     {
-        pc.CmdRequestNextTurn(PlayerController.playerIndex);
+        pc.CmdRequestNextTurn();
     }
 
 }

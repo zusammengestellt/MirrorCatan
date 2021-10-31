@@ -45,7 +45,7 @@ public class DebugText : MonoBehaviour
             if (c != null)
                 sidebar.text = $"Corner {c.idNum}: owned {c.owned}, {c.playerOwner}\nisHarbor: {c.isHarbor}, type: {c.harborType.ToString()}";
             else if (h != null)
-                 sidebar.text = $"Hex {h.id}: resource: {h.resource}, roll: {h.roll}\nrobbed: {h.robbed}";
+                sidebar.text = $"Hex {h.id}: resource: {h.resource}, roll: {h.roll}\nrobbed: {h.robbed}";
         }
 
 
@@ -121,7 +121,7 @@ public class DebugText : MonoBehaviour
 
         // Shift+Y: next turn
         if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.Y))
-            gm.CmdRequestNextTurn(gm.currentTurn);
+            gm.CmdRequestNextTurn();
 
         if (Input.GetKeyDown(KeyCode.Alpha1))
             selectedPlayer = 1;

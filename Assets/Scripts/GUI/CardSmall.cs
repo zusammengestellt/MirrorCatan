@@ -56,5 +56,9 @@ public class CardSmall : MonoBehaviour
             if (GameBoard.IsStealTarget(cardOwner))
                 gm.CmdRequestStealCard(cardOwner, PlayerController.playerIndex);
         }
+        else if (gm.GameState != GameManager.State.STEAL)
+        {
+            Debug.Log("Can't click on this card, GameState is not steal (yet)");
+        }
     }
 }

@@ -17,7 +17,10 @@ public class PrivateVP : MonoBehaviour
     void Update()
     {
         gm.CmdRecalculateVP();
-        label.text = $"VP: {gm.playerPrivateVP[PlayerController.playerIndex]}/{gm.VPtoWin}";
+
+        if (!gm.playerPrivateVP.ContainsKey(PlayerController.playerIndex)) { return; }
+
+        label.text = $"{gm.playerPrivateVP[PlayerController.playerIndex]}/{gm.VPtoWin}";
 
         if (gm.GameState == GameManager.State.WINNER)
             label.fontStyle = FontStyle.Bold;
