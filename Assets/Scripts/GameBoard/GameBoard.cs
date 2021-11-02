@@ -763,6 +763,27 @@ public class GameBoard : NetworkBehaviour
         return roadCount;
     }
 
+    public static int VillagesOwnedBy(int playerIndex)
+    {
+        int count = 0;
+        for (int i = 0; i < corners.Length; i++)
+        {
+            if (corners[i].owned && corners[i].playerOwner == playerIndex && corners[i].devLevel == 1)
+                count++;
+        }
+        return count;
+    }
+    public static int CitiesOwnedBy(int playerIndex)
+    {
+        int count = 0;
+        for (int i = 0; i < corners.Length; i++)
+        {
+            if (corners[i].owned && corners[i].playerOwner == playerIndex && corners[i].devLevel == 2)
+                count++;
+        }
+        return count;
+    }
+
 
     public static int longestRoad = 0;
     public static int longestRoadOwner = 0;

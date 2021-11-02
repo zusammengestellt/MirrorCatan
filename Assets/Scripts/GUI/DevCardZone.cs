@@ -25,6 +25,7 @@ public class DevCardZone : MonoBehaviour
     {
         if (targetPlayerIndex != PlayerController.playerIndex) { return; }
 
+
         // The local player's hand was changed. Update the main hand zone.
         // First, clear existing hand zone.
         List<GameObject> allChildren = new List<GameObject>();

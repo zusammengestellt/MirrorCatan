@@ -17,6 +17,9 @@ public class BuildCityButton : MonoBehaviour
 
     private void Update()
     {
+        if (gm.GameState == GameManager.State.WINNER)
+            this.GetComponent<Button>().interactable = false;
+            
         if (gm.GameState == GameManager.State.IDLE && pc.CanAffordCity() && PlayerController.playerIndex == gm.currentTurn)
             this.GetComponent<Button>().interactable = true;
         else

@@ -24,7 +24,12 @@ public class CoinMenu : MonoBehaviour
 
     private void Update()
     {
-        if (gm.GameState == GameManager.State.IDLE && gm.currentTurn == PlayerController.playerIndex && gm.playerCoins[PlayerController.playerIndex] >= 5)
+        if (gm.GameState == GameManager.State.WINNER)
+        {
+            canvasGroup.alpha = 0;
+            canvasGroup.interactable = false;
+        }
+        else if (gm.GameState == GameManager.State.IDLE && gm.currentTurn == PlayerController.playerIndex && gm.playerCoins[PlayerController.playerIndex] >= 5)
         {
             canvasGroup.alpha = 1;
             canvasGroup.interactable = true;
@@ -57,6 +62,9 @@ public class CoinMenu : MonoBehaviour
 
         gm.CmdAddResource(PlayerController.playerIndex, selectedResource);
         gm.CmdRemoveCoins(PlayerController.playerIndex, 5);
+
+        gm.CmdIncomeAnimation(PlayerController.playerIndex, new List<Resource>(){selectedResource}, false);
+        gm.CmdLossAnimation(PlayerController.playerIndex, new List<Resource>(), true);
     }
 
 }

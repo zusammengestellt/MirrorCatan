@@ -12,13 +12,15 @@ public class PlayerController : NetworkBehaviour
 
     public PlayerController instance;
 
-    private GameManager gm;
-    private GameBoard gb;
+    public GameManager gm;
+    public GameBoard gb;
 
     [SyncVar] public int syncPlayerIndex;
     public static int playerIndex;
 
     public GameObject DevCardMenu;
+    
+    public CanvasGroup ExitMenu;
 
     void Start()
     {
@@ -35,13 +37,18 @@ public class PlayerController : NetworkBehaviour
             //GameObject.Find("Lobby").SetActive(false);
             instance = this;
             playerIndex = syncPlayerIndex;
-        }
+
+            ExitMenu.alpha = 0.0f;
+            ExitMenu.interactable = false;
+            ExitMenu.blocksRaycasts = false;
+        }        
 
     }
 
     void OnEnable()
     {
         DevCard.onPlayDevCard += PlayDevCard;
+        DevCard.onPlayDevCardEarly += PlayDevCardEarly;
     }
 
     private void PlayDevCard(int devPlayer, Dev devCardToPlay)
@@ -50,9 +57,18 @@ public class PlayerController : NetworkBehaviour
             DevCardMenu.GetComponent<DevCardMenu>().EnableDevMenu(devCardToPlay);
     }
 
+    private void PlayDevCardEarly(int devPlayer)
+    {
+        if (devPlayer == playerIndex)
+            DevCardMenu.GetComponent<DevCardMenu>().EnableDevMenuEarly();
+    }
+
     private void Update()
     {
         if (!isLocalPlayer) { return; }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+            ToggleEscapeMenu();
 
         if (!debugText) { return; }
 
@@ -64,6 +80,8 @@ public class PlayerController : NetworkBehaviour
         {
             Hex h = GameBoard.HexUnderMouse().GetComponent<HexComponent>().hex;
         }
+
+        
     }
 
 
@@ -187,7 +205,23 @@ public class PlayerController : NetworkBehaviour
         gm.RequestNextTurn();
     }
 
+    private bool exitMenuOn = false;
 
+    public void ToggleEscapeMenu()
+    {
+        if (gm.GameState == GameManager.State.WINNER) { return; }
+
+        exitMenuOn = !exitMenuOn;
+
+        ExitMenu.alpha = exitMenuOn ? 1.0f : 0.0f;
+        ExitMenu.interactable = exitMenuOn;
+        ExitMenu.blocksRaycasts = exitMenuOn;
+    }
+
+    public void OnPressExitButton()
+    {
+        Application.Quit();
+    }
 
 
 

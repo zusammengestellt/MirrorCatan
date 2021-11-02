@@ -17,8 +17,6 @@ public class TradeMenu : MonoBehaviour
     public Text tradeOfferButtonText;
     private bool offeredTrade = false;
 
-    public Button tradeAcceptButton;
-
     private GameManager gm;
     private PlayerController pc;
 
@@ -39,7 +37,11 @@ public class TradeMenu : MonoBehaviour
         exchangeRates = UpdateExchangeRates();
 
         if (gm.GameState == GameManager.State.WINNER)
-            this.gameObject.SetActive(false);
+        {
+            tradeDropdown.interactable = false;
+            tradeExchangeButton.interactable = false;
+            tradeOfferButton.interactable = false;
+        }
 
 
         // Trade Exchange button is available during IDLE if player has selected
@@ -174,6 +176,9 @@ public class TradeMenu : MonoBehaviour
 
         Debug.Log($"quantity: {quantity}, exchangerate: {exchangeRates[selectedResource]}, selectedCards: {gm.playerSelectedCards[PlayerController.playerIndex].Count}");
 
+        List<Resource> resIncome = new List<Resource>();
+        List<Resource> resLoss = new List<Resource>();
+
         foreach (Resource res in gm.playerSelectedCards[PlayerController.playerIndex])
         {
             // Player can have 4 wool, click 3:1, and still have 1 wool leftover.
@@ -181,6 +186,8 @@ public class TradeMenu : MonoBehaviour
             {
                 Debug.Log($"removing resource {res} from {PlayerController.playerIndex}");
                 gm.CmdRemoveResource(PlayerController.playerIndex, res);
+
+                resLoss.Add(res);
             }
             i++;
         }
@@ -189,6 +196,10 @@ public class TradeMenu : MonoBehaviour
         gm.CmdClearSelectedCards();
 
         gm.CmdAddResource(PlayerController.playerIndex, selectedResource);
+        resIncome.Add(selectedResource);
+
+        gm.CmdIncomeAnimation(PlayerController.playerIndex, resIncome, false);
+        gm.CmdLossAnimation(PlayerController.playerIndex, resLoss, false);
     }
 
     public void OnClickOfferTrade()

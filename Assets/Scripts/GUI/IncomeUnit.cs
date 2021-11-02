@@ -8,6 +8,7 @@ public class IncomeUnit : MonoBehaviour
     public CanvasGroup canvasGroup;
     public Text label;
     public Image icon;
+    public Image bg;
 
     [Range(0.0f, 10.0f)] public float totalDuration;
     [Range(0.0f, 10.0f)] public float lerpTime;
@@ -15,6 +16,13 @@ public class IncomeUnit : MonoBehaviour
     private void Start()
     {
         StartCoroutine(FadeOutCanvasGroup());
+    }
+
+    public void MakeLossUnit()
+    {
+        bg.color = Color.red;
+        label.color = Color.black;
+        label.fontStyle = FontStyle.Bold;
     }
 
     private IEnumerator FadeOutCanvasGroup()

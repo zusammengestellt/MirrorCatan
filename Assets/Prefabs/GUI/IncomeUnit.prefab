@@ -67,7 +67,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 12800000, guid: 7ebf017c148dc233080d59b18327efb1, type: 3}
-    m_FontSize: 40
+    m_FontSize: 30
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 0
@@ -78,7 +78,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 5
+  m_Text: +5
 --- !u!1 &3435166627108380336
 GameObject:
   m_ObjectHideFlags: 0
@@ -248,6 +248,7 @@ MonoBehaviour:
   canvasGroup: {fileID: 2339657142067923700}
   label: {fileID: 8922443701730729662}
   icon: {fileID: 6760435755426500688}
+  bg: {fileID: 1390370431484314610}
   totalDuration: 7
   lerpTime: 2
 --- !u!225 &2339657142067923700

@@ -165,6 +165,7 @@ MonoBehaviour:
   coinSingle1: {fileID: 8300000, guid: 51c7f726c8ee3844aa1033d4a7f07939, type: 3}
   coinSingle2: {fileID: 8300000, guid: 1dcce577f8c7bad4e941294393e97571, type: 3}
   coinSingle3: {fileID: 8300000, guid: d8f6f7194b55dab4c98fc329deffeb64, type: 3}
+  monopoly: {fileID: 8300000, guid: d78fa282125964e45ad763a74e979246, type: 3}
 --- !u!1 &6100012738935036317
 GameObject:
   m_ObjectHideFlags: 0
@@ -342,6 +343,7 @@ MonoBehaviour:
   syncPlayerCount: 0
   currentTurn: 0
   serverTotalTurns: 0
+  devCardsBoughtThisTurn: 
   largestArmyOwner: 0
   longestRoadOwner: 0
   harbormasterOwner: 0

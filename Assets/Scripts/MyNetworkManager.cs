@@ -29,7 +29,7 @@ public class MyNetworkManager : NetworkManager
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.C))
+        if (Input.GetKeyDown(KeyCode.C) && Input.GetKey(KeyCode.LeftShift))
             NetworkClient.Send(new StartMessage {});
     }
 

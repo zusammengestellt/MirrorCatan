@@ -37,7 +37,6 @@ public class DevCardMenu : MonoBehaviour
 
         devDropdownObject.SetActive(true);
         playButtonObject.SetActive(true);
-
         canvasGroup.alpha = 1.0f;
 
         devCardToPlay = dev;
@@ -70,6 +69,18 @@ public class DevCardMenu : MonoBehaviour
                 label.text = "Select a resource to automatically gain two from the bank.";
                 break;
         }
+    }
+
+    public void EnableDevMenuEarly()
+    {
+        canvasGroup.interactable = true;
+
+        devDropdownObject.SetActive(false);
+        playButtonObject.SetActive(false);
+        canvasGroup.alpha = 1.0f;
+
+        label.text = "You cannot play a development card on the same turn you bought it.";
+
     }
 
     public void DisableDevMenu()

@@ -13,7 +13,7 @@ using Mirror;
 // executes GameObject.FindGameObjectWithTag("GameManager").
 
 public enum Resource { None, Brick, Grain, Ore, Wood, Wool }
-public enum Dev { None, Knight, KnightRevealed, Roads, Plenty, Monopoly, VP, VPRevealed }
+public enum Dev { None, Knight, KnightRevealed, Roads, Plenty, Monopoly, VP, VPRevealed, PD }
 
 public class GameManager : NetworkBehaviour
 {
@@ -35,7 +35,7 @@ public class GameManager : NetworkBehaviour
     public static int playerCount;
 
     [SyncVar] public int currentTurn = 0;
-    public int serverTotalTurns = 0;
+    [SyncVar] public int serverTotalTurns = 0;
 
     public SyncDictionary<int, NetworkIdentity> playerIds = new SyncDictionary<int, NetworkIdentity>();
     public SyncDictionary<int, string> playerNames = new SyncDictionary<int, string>();
@@ -45,6 +45,7 @@ public class GameManager : NetworkBehaviour
     public SyncDictionary<int, int> playerPublicVP = new SyncDictionary<int, int>();
     public SyncDictionary<int, int> playerPrivateVP = new SyncDictionary<int, int>();
     public SyncDictionary<int, int> stillToDiscard = new SyncDictionary<int, int>();
+    public List<Dev> devCardsBoughtThisTurn = new List<Dev>();
 
     public Dictionary<int, List<Resource>> playerSelectedCards = new Dictionary<int, List<Resource>>();
     public Dictionary<int, bool> playerOfferingTrade = new Dictionary<int, bool>();
@@ -267,6 +268,12 @@ public class GameManager : NetworkBehaviour
             currentTurn = i;
             RpcLocalAudio(playerIds[i].connectionToClient, 19);
 
+            RpcNotify(new NotificationMessage {
+                targetPlayer = i,
+                privateMessage = "Place your starting buildings!",
+                publicMessage = $"{playerNames[i]} is placing their starting buildings."
+            });
+
             StateIdleToBuild("Starter blueprint IDLE -> BUILD");
             RpcGiveStarterBlueprint(playerIds[i].connectionToClient, "Village");
             yield return new WaitUntil(() => GameBoard.GetNumVillages() >= i);
@@ -282,6 +289,12 @@ public class GameManager : NetworkBehaviour
             currentTurn = i;
             RpcLocalAudio(playerIds[i].connectionToClient, 19);
 
+            RpcNotify(new NotificationMessage {
+                targetPlayer = i,
+                privateMessage = "Place your starting buildings!",
+                publicMessage = $"{playerNames[i]} is placing their starting buildings."
+            });
+
             StateIdleToBuild("Starter blueprint IDLE -> BUILD");
             RpcGiveStarterBlueprint(playerIds[i].connectionToClient, "Village");
             yield return new WaitUntil(() => GameBoard.GetNumVillages() >= playerCount+j);
@@ -291,6 +304,8 @@ public class GameManager : NetworkBehaviour
             yield return new WaitUntil(() => GameBoard.GetNumRoads() >= playerCount+j);
             j++;
         }
+
+        RpcNotifyClear();
 
         // Distribute starting resources.
         for (int i = 0; i < GameBoard.numCorners; i++)
@@ -327,15 +342,40 @@ public class GameManager : NetworkBehaviour
         RequestNextTurn();
     }
 
+    public static event Action<NotificationMessage> onNotification;
+    public static event Action onNotificationClear;
+
+    [ClientRpc]
+    private void RpcNotify(NotificationMessage notification)
+    {
+        onNotification?.Invoke(notification);
+    }
+
+    [TargetRpc]
+    private void RpcSingleNotify(NetworkConnection target, NotificationMessage notification)
+    {
+        onNotification?.Invoke(notification);
+    }
+
+    [ClientRpc]
+    private void RpcNotifyClear()
+    {
+        onNotificationClear?.Invoke();
+    }
+
+
     [Server]
     public void RequestNextTurn()
     {
-        Debug.Log(setup);
+        RpcNotifyClear();
+        
         for (int i = 1; i <= playerCount; i++)
         {
             playerOfferingTrade[i] = false;
             stillToDiscard[i] = 0;
         }
+        devCardsBoughtThisTurn.Clear();
+        RpcClearDevCardsBoughtThisTurn();
 
         StateIdleToRoll();
 
@@ -397,6 +437,7 @@ public class GameManager : NetworkBehaviour
     }
 
     public static event Action<int, List<Resource>, bool> onIncomeAnimation;
+    public static event Action<int, List<Resource>, bool> onLossAnimation;
 
     [Server]
     private void DistributeResources(int rollResult)
@@ -453,13 +494,18 @@ public class GameManager : NetworkBehaviour
         {
             if (resIncome[i].Count == 0)
             {
-                bool lowestVP = true;
+                bool lowesDev = true;
+                int playerDev = GameBoard.VillagesOwnedBy(i) + (GameBoard.CitiesOwnedBy(i) * 2);
 
                 for (int j = 1; j <= playerCount; j++)
-                    if (playerPrivateVP[i] > playerPrivateVP[j])
-                        lowestVP = false;
-                
-                if (lowestVP)
+                {
+                    int opponentDev = GameBoard.VillagesOwnedBy(j) + (GameBoard.CitiesOwnedBy(j) * 2);
+
+                    if (playerDev > opponentDev)
+                        lowesDev = false;
+                }
+
+                if (lowesDev)
                 {
                     playerCoins[i] += 1;
 
@@ -511,11 +557,29 @@ public class GameManager : NetworkBehaviour
         playerCoins[playerIndex] -= 5;
     }
     
+    [Command(requiresAuthority = false)]
+    public void CmdIncomeAnimation(int targetPlayer, List<Resource> resIncome, bool coinIncome)
+    {
+        RpcIncomeAnimation(targetPlayer, resIncome, coinIncome);
+    }
 
     [ClientRpc]
     private void RpcIncomeAnimation(int targetPlayer, List<Resource> resIncome, bool coinIncome)
     {
         onIncomeAnimation?.Invoke(targetPlayer, resIncome, coinIncome);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdLossAnimation(int targetPlayer, List<Resource> resLoss, bool coinLoss)
+    {
+        RpcLossAnimation(targetPlayer, resLoss, coinLoss);
+    }
+
+    
+    [ClientRpc]
+    private void RpcLossAnimation(int targetPlayer, List<Resource> resLoss, bool coinLoss)
+    {
+        onLossAnimation?.Invoke(targetPlayer, resLoss, coinLoss);
     }
 
 
@@ -528,7 +592,6 @@ public class GameManager : NetworkBehaviour
         RpcPlayAudio(11);
 
         // Calculate stillToDiscard
-        
         for (int i = 1; i <= playerCount; i++)
         {
             Debug.Log($"playerResources: {playerResources[i].Count}");
@@ -557,16 +620,36 @@ public class GameManager : NetworkBehaviour
     {
         yield return new WaitUntil(() => DiscardAllReady());
         
-        StateDiscardToRobber();
-
         for (int i = 1; i <= playerCount; i++)
             stillToDiscard[i] = 0;
+
+        StateDiscardToRobber();
+        RobberPhase();
     }
 
     // Check if all players have fully discarded for coroutine above.
     [Server]
     public bool DiscardAllReady()
     {
+        // Discard notifications.
+        for (int i = 1; i <= playerCount; i++)
+        {
+            if (stillToDiscard[i] > 0)
+            {
+                RpcSingleNotify(playerIds[i].connectionToClient, new NotificationMessage{
+                    targetPlayer = i,
+                    privateMessage = $"Robber was rolled!\nDiscard {stillToDiscard[i]} cards.",
+                    publicMessage = $"" });
+            }
+            else
+            {
+                RpcSingleNotify(playerIds[i].connectionToClient, new NotificationMessage{
+                    targetPlayer = i,
+                    privateMessage = $"Robber was rolled!\nWaiting for other players to discard.",
+                    publicMessage = $"" });
+            }
+        }
+
         for (int i = 1; i <= playerCount; i++)
             if (stillToDiscard[i] > 0)
                 return false;
@@ -589,6 +672,12 @@ public class GameManager : NetworkBehaviour
     public void CmdPlayKnight(int knightPlayer)
     {
         RpcPlayAudio(10);
+
+        RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = $"Move the robber!",
+                publicMessage = $"{playerNames[knightPlayer]} has recruited a Knight to their standing army!",
+                temporary = true});
 
         if (GameState != State.IDLE) { Debug.LogWarning("CmdPlayKnight was not idle when requested, returning"); return; }
 
@@ -635,6 +724,12 @@ public class GameManager : NetworkBehaviour
 
         if (largestArmyOwner != previousLargestArmyOwner)
         {
+            RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = $"You now have the Largest Army!\n(Move the robber.)",
+                publicMessage = $"{playerNames[knightPlayer]}'s army has no equal!\n(+2 Victory Points)",
+                temporary = true});
+
             RpcInterruptAudio();
             RpcPlayAudio(31);
         }
@@ -646,7 +741,10 @@ public class GameManager : NetworkBehaviour
 
     public void RobberPhase()
     {
-        
+        RpcNotify(new NotificationMessage{
+            targetPlayer = currentTurn,
+            privateMessage = "Move the robber.",
+            publicMessage = $"{playerNames[currentTurn]} is moving the robber."});
     }
 
     [Command(requiresAuthority = false)]
@@ -686,11 +784,17 @@ public class GameManager : NetworkBehaviour
         {
             Debug.Log("no steal targets, on to IDLE");
             StateEndRobberToIdle($"{GameState} / stealTargets.Count: {stealTargets.Count}");
+            RpcNotifyClear();
         }
         else
         {
             Debug.Log($"State is {GameState}, there are steal targets");
             StateEndRobberToSteal();
+
+            RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = "Steal a card from a player!",
+                publicMessage = $"{playerNames[currentTurn]} is stealing a card."});
         }
     }
 
@@ -728,22 +832,43 @@ public class GameManager : NetworkBehaviour
         {
             RemoveResource(targetPlayer, stolenRes);
             AddResource(thiefPlayer, stolenRes);
+
+            RpcIncomeAnimation(
+                thiefPlayer,
+                new List<Resource>() { stolenRes },
+                false);
+
+            RpcLossAnimation(
+                targetPlayer,
+                new List<Resource>() { stolenRes },
+                false);
+
             Debug.Log($"Player {thiefPlayer} stole a {stolenRes} from player {targetPlayer}");
         }
         
         // Advance game state.
         StateStealToIdle($"State was {GameState}, toStealFrom: {toStealFrom.Count}, targetPlayer {targetPlayer} thiefPlayer {thiefPlayer}");
+        
+        RpcNotifyClear();
+        RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = "It is your turn.",
+                publicMessage = $""});
     }
     
     [Command(requiresAuthority = false)]
     public void CmdProcessMonopoly(int cardPlayer, Resource res)
     {
+        RpcPlayAudio(36);
+
         Dictionary<int, int> toStealCount = new Dictionary<int, int>();
         List<Resource> resIncome = new List<Resource>();
+        Dictionary<int, List<Resource>> resLosses = new Dictionary<int, List<Resource>>();
 
         for (int i = 1; i <= playerCount; i++)
         {
             toStealCount[i] = 0;
+            resLosses[i] = new List<Resource>();
 
             if (i != cardPlayer)
                 foreach (Resource match in playerResources[i].Where(r => r == res))
@@ -756,17 +881,44 @@ public class GameManager : NetworkBehaviour
             {
                 RemoveResource(i, res);
                 AddResource(cardPlayer, res);
+
+                resLosses[i].Add(res);
                 resIncome.Add(res);
             }
         }
 
         if (resIncome.Count > 0)
+        {
             RpcIncomeAnimation(cardPlayer, resIncome, false);
+
+            RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = "",
+                publicMessage = $"{playerNames[cardPlayer]} has declared a Monopoly on {res} and seized every copy from all players!",
+                temporary = true});
+        }
+        else
+        {
+            RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = $"Your tax collectors searched far and wide, but there is simply no {res} to be found.",
+                publicMessage = $"{playerNames[cardPlayer]} tried to declare a Monopoly on {res}, but shortages ravage the continent!",
+                temporary = true});
+        }
+
+        for (int i = 1; i <= playerCount; i++)
+            RpcLossAnimation(i, resLosses[i], false);
     }
 
     [Command(requiresAuthority = false)]
     public void CmdProcessYearOfPlenty(int playerIndex, Resource res)
     {
+        RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = "",
+                publicMessage = $"{playerNames[currentTurn]} benefits from a Year of Plenty and takes two free {res}!",
+                temporary = true});
+
         List<Resource> resIncome = new List<Resource>();
         resIncome.Add(res);
         resIncome.Add(res);
@@ -779,6 +931,12 @@ public class GameManager : NetworkBehaviour
     [Command(requiresAuthority = false)]
     public void CmdProcessRoadBuilding(int playerIndex)
     {   
+        RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = $"Place two free roads.",
+                publicMessage = $"{playerNames[currentTurn]} has enacted a program of Road Building and is placing two free roads!",
+                temporary = true});
+
         StartCoroutine(RoadBuilding(playerIndex));
     }
 
@@ -793,6 +951,8 @@ public class GameManager : NetworkBehaviour
         StateIdleToBuild("Starter blueprint IDLE -> BUILD");
         RpcGiveBlueprint(playerIds[playerIndex].connectionToClient, "Road", false, true);
         yield return new WaitUntil(() => GameBoard.GetNumRoads() >= startRoadCount + 2);
+
+        RpcNotifyClear();
     }
 
     [TargetRpc]
@@ -963,10 +1123,15 @@ public class GameManager : NetworkBehaviour
                             //GameObject.Destroy(blueprintObj);
                             //GameState = State.IDLE;
                             
-                            if (!starter || !free)
+                            if (!starter && !free)
                             {
                                 CmdRemoveResource(PlayerController.playerIndex, Resource.Wood);
                                 CmdRemoveResource(PlayerController.playerIndex, Resource.Brick);
+
+                                CmdLossAnimation(
+                                    PlayerController.playerIndex,
+                                    new List<Resource>() { Resource.Wood, Resource.Brick },
+                                    false);
                             }
 
                             CmdBuildRoad(proposedPath.idNum, PlayerController.playerIndex, blueprintPos, blueprintRot);
@@ -1036,6 +1201,11 @@ public class GameManager : NetworkBehaviour
                                 CmdRemoveResource(PlayerController.playerIndex, Resource.Brick);
                                 CmdRemoveResource(PlayerController.playerIndex, Resource.Wool);
                                 CmdRemoveResource(PlayerController.playerIndex, Resource.Grain);
+
+                                CmdLossAnimation(
+                                    PlayerController.playerIndex,
+                                    new List<Resource>() { Resource.Wood, Resource.Brick, Resource.Wool, Resource.Grain },
+                                    false);
                             }
 
                             CmdBuildVillage(proposedCorner.idNum, PlayerController.playerIndex, blueprintPos, blueprintRot);
@@ -1083,6 +1253,11 @@ public class GameManager : NetworkBehaviour
                             CmdRemoveResource(PlayerController.playerIndex, Resource.Ore);
                             CmdRemoveResource(PlayerController.playerIndex, Resource.Grain);
                             CmdRemoveResource(PlayerController.playerIndex, Resource.Grain); 
+
+                            CmdLossAnimation(
+                                PlayerController.playerIndex,
+                                new List<Resource>() { Resource.Ore, Resource.Ore, Resource.Ore, Resource.Grain, Resource.Grain },
+                                false);
 
                             CmdBuildCity(proposedCorner.idNum, PlayerController.playerIndex, blueprintPos, blueprintRot);
                         }
@@ -1135,6 +1310,11 @@ public class GameManager : NetworkBehaviour
 
         if (longestRoadOwner != previousLongestRoadOwner)
         {
+            RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = $"You now have the Longest Road!",
+                publicMessage = $"All roads lead to {playerNames[longestRoadOwner]}'s demense!\n(+2 Victory Points)"});
+
             RpcInterruptAudio();
             RpcPlayAudio(30);
         }
@@ -1229,37 +1409,6 @@ public class GameManager : NetworkBehaviour
         selectorRing.GetComponent<MeshRenderer>().material = GetPlayerMaterial(builderIndex, true);
     }
 
-    // Assigns player numbers to materials
-    [Client]
-    public Material GetPlayerMaterial(int player, bool transparent = false)
-    {
-        switch (player)
-        {
-            case 1:
-                if (transparent)
-                    return matTransparentBlue;
-                return matBlue;
-
-            case 2:
-                if (transparent)
-                    return matTransparentRed;
-                return matRed;
-
-            case 3:
-                if (transparent)
-                    return matTransparentYellow;
-                return matYellow;
-
-            case 4:
-                if (transparent)
-                    return matTransparentGreen;
-                return matGreen;
-        }
-
-        if (transparent)
-            return matTransparentBlue;
-        return matBlue;
-    }
 
     // After the server adds a resource, it calls a ClientRpc to get
     // the event to fire on all handlers on each client.
@@ -1333,7 +1482,9 @@ public class GameManager : NetworkBehaviour
         newDevCards.Add(dev);
         playerDevCards[playerIndex] = newDevCards;
 
+        devCardsBoughtThisTurn.Add(dev);
         RpcChangeDevCard(playerIndex, newDevCards);
+        RpcUpdateDevCardsBoughtThisTurn(devCardsBoughtThisTurn);
     }
 
     [Command(requiresAuthority = false)]
@@ -1363,9 +1514,28 @@ public class GameManager : NetworkBehaviour
         onDevCardChanged?.Invoke(playerIndex, newDevCards);
     }
 
+    [ClientRpc]
+    private void RpcUpdateDevCardsBoughtThisTurn(List<Dev> devCardsBought)
+    {
+        devCardsBoughtThisTurn = devCardsBought;
+    }
+
+    [ClientRpc]
+    private void RpcClearDevCardsBoughtThisTurn()
+    {
+        devCardsBoughtThisTurn.Clear();
+    }
+
     [Command(requiresAuthority = false)]
     public void CmdBuyDevCard(int buyerIndex)
     {
+        
+        RpcNotify(new NotificationMessage {
+                targetPlayer = buyerIndex,
+                privateMessage = "",
+                publicMessage = $"{playerNames[buyerIndex]} bought a development card."
+            });
+
         RemoveResource(buyerIndex, Resource.Wool);
         RemoveResource(buyerIndex, Resource.Grain);
         RemoveResource(buyerIndex, Resource.Ore);
@@ -1395,6 +1565,7 @@ public class GameManager : NetworkBehaviour
         {
             randomDev = Dev.Plenty;
         }
+
         AddDevCard(buyerIndex, randomDev);
     }
 
@@ -1465,17 +1636,28 @@ public class GameManager : NetworkBehaviour
     {
         int trader = currentTurn;
 
-        foreach (Resource res in playerSelectedCards[trader])
-        {
-            AddResource(otherTrader, res);
-            RemoveResource(trader, res);
-        }
+        List<Resource> traderIncome = new List<Resource>();
+        List<Resource> otherTraderIncome = new List<Resource>();
+        
         foreach (Resource res in playerSelectedCards[otherTrader])
         {
             AddResource(trader, res);
             RemoveResource(otherTrader, res);
+            traderIncome.Add(res);
         }
 
+        foreach (Resource res in playerSelectedCards[trader])
+        {
+            AddResource(otherTrader, res);
+            RemoveResource(trader, res);
+            otherTraderIncome.Add(res);            
+        }
+
+        RpcIncomeAnimation(trader, traderIncome, false);
+        RpcLossAnimation(trader, otherTraderIncome, false);
+        RpcIncomeAnimation(otherTrader, otherTraderIncome, false);
+        RpcLossAnimation(otherTrader, traderIncome, false);
+    
         for (int i = 1; i <= playerCount; i++)
         {
             playerSelectedCards[i].Clear();
@@ -1483,6 +1665,7 @@ public class GameManager : NetworkBehaviour
             RpcOfferTrade(i, playerOfferingTrade[i]);
             RpcChangeSelectedCard(i, playerSelectedCards[i]);
         }
+
         GameState = State.IDLE;
     }
 
@@ -1512,6 +1695,11 @@ public class GameManager : NetworkBehaviour
 
         if (harbormasterOwner != previousHarbormasterOwner)
         {
+            RpcNotify(new NotificationMessage{
+                targetPlayer = currentTurn,
+                privateMessage = $"You are now the Harbormaster!\n(+2 Victory Points)",
+                publicMessage = $"{playerNames[currentTurn]}'s merchant fleets rule the seas!\n(+2 Victory Points)"});
+            
             RpcInterruptAudio();
             RpcPlayAudio(32);
         }
@@ -1603,6 +1791,9 @@ public class GameManager : NetworkBehaviour
     {
         GameState = State.WINNER;
 
+        // Play audio.
+        RpcPlayAudio(12);
+
         // Reveal VP dev cards.
         List<Dev> tempDevCards = new List<Dev>();
 
@@ -1624,12 +1815,15 @@ public class GameManager : NetworkBehaviour
                 }
             }
         }
-        
-        
-        //
-        //
-        //
+
+        RpcNotifyClear();
+        RpcNotify(new NotificationMessage{
+            targetPlayer = currentTurn,
+            privateMessage = $"You have won the game!",
+            publicMessage = $"{playerNames[currentTurn]} has won the game!"});
+    
     }
+
 
 
     public static Color PlayerColor(int playerIndex)
@@ -1637,17 +1831,50 @@ public class GameManager : NetworkBehaviour
         switch (playerIndex)
         {
             case 1:
-                return Color.blue; break;
+                return Color.blue;
             case 2:
-                return Color.red; break;
+                return Color.red;
             case 3:
-                return Color.yellow; break;
+                return Color.yellow;
             case 4:
-                return Color.green; break;
+                return Color.green;
         }
 
         return Color.white;
     }
+
+        // Assigns player numbers to materials
+    [Client]
+    public Material GetPlayerMaterial(int player, bool transparent = false)
+    {
+        switch (player)
+        {
+            case 1:
+                if (transparent)
+                    return matTransparentBlue;
+                return matBlue;
+
+            case 2:
+                if (transparent)
+                    return matTransparentRed;
+                return matRed;
+
+            case 3:
+                if (transparent)
+                    return matTransparentYellow;
+                return matYellow;
+
+            case 4:
+                if (transparent)
+                    return matTransparentGreen;
+                return matGreen;
+        }
+
+        if (transparent)
+            return matTransparentBlue;
+        return matBlue;
+    }
+
 
     [Command(requiresAuthority=false)]
     public void CmdDebugForceIdle()

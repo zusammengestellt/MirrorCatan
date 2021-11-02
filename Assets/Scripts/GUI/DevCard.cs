@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -24,6 +25,7 @@ public class DevCard : MonoBehaviour
     private Vector2 startPosition;
 
     public static event Action<int, Dev> onPlayDevCard;
+    public static event Action<int> onPlayDevCardEarly;
 
     private void Start()
     {
@@ -55,18 +57,14 @@ public class DevCard : MonoBehaviour
         
         if (gm.currentTurn == PlayerController.playerIndex && gm.GameState == GameManager.State.IDLE)
         {
-            onPlayDevCard?.Invoke(PlayerController.playerIndex, dev);
-            /*
+            // Can't play on turn bought
+            if (gm.playerDevCards[PlayerController.playerIndex].Where(d => d == dev).Count() > gm.devCardsBoughtThisTurn.Where(d => d == dev).Count())
+                onPlayDevCard?.Invoke(PlayerController.playerIndex, dev);
+            else if (dev == Dev.VP)
+                onPlayDevCard?.Invoke(PlayerController.playerIndex, Dev.VP);
+            else
+                onPlayDevCardEarly.Invoke(PlayerController.playerIndex);
 
-            // Play knight card.
-            if (dev == Dev.Knight)
-            {
-                // Remove knight card.
-                gm.CmdRemoveDevCard(PlayerController.playerIndex, Dev.Knight);
-                gm.CmdAddDevCard(PlayerController.playerIndex, Dev.KnightRevealed);
-                gm.CmdPlayKnight(PlayerController.playerIndex);
-            }
-            */
 
         }   
     }

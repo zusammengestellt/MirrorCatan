@@ -18,7 +18,7 @@ public class NextTurnButton : MonoBehaviour
     private void Update()
     {
         if (gm.GameState == GameManager.State.WINNER)
-            this.gameObject.SetActive(false);
+            this.GetComponent<Button>().interactable = false;
 
         if (gm.GameState == GameManager.State.IDLE && PlayerController.playerIndex == gm.currentTurn)
             this.GetComponent<Button>().interactable = true;

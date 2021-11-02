@@ -106,7 +106,7 @@ public class DebugText : MonoBehaviour
         newText += "1234: select player.\n";
         newText += "QWERT: add Wood/Brick/Wool/Grain/Ore\n";
         newText += "ASDFG: remove Wood/Brick/Wool/Grain/Ore";
-        
+        newText += "V/B: add/remove victory points";
         menu.text = newText;
 
     }
@@ -155,6 +155,11 @@ public class DebugText : MonoBehaviour
             gm.CmdRemoveResource(selectedPlayer, Resource.Grain);
         if (Input.GetKeyDown(KeyCode.G))
             gm.CmdRemoveResource(selectedPlayer, Resource.Ore);
+        
+        if (Input.GetKeyDown(KeyCode.V))
+            gm.CmdAddDevCard(selectedPlayer, Dev.VP);
+        if (Input.GetKeyDown(KeyCode.B))
+            gm.CmdRemoveDevCard(selectedPlayer, Dev.VP);
 
     }
 }
